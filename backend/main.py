@@ -112,7 +112,7 @@ async def search(query: str = ""):
             "name": title,
             "price": price,
             "image": image,
-            "url": url,
+            "url": f"https://www.amazon.in/dp/{asin}" if asin else url,
             "rating": rating,
             "reviewCount": reviews_count,
             "priceTrend": "stable",
