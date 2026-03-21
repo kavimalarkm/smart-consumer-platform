@@ -1,5 +1,5 @@
 import ScoreBar from "./ScoreBar";
-import { TrendingDown, TrendingUp, Minus } from "lucide-react";
+import { TrendingDown, TrendingUp, Minus, ExternalLink } from "lucide-react";
 
 const RANK_LABELS = { 1: "Best Choice", 2: "2nd Choice", 3: "3rd Choice" };
 const RANK_CLASSES = { 1: "badge-rank1", 2: "badge-rank2", 3: "badge-rank3" };
@@ -17,6 +17,12 @@ export default function ProductCard({ product }) {
 
   return (
     <div className={`product-card ${isBest ? "product-card--best" : ""}`}>
+      {product.image && (
+        <div className="product-image-wrap">
+          <img src={`https://smart-consumer-backend.onrender.com/image-proxy?url=${encodeURIComponent(product.image)}`} alt={product.name} className="product-image" />
+        </div>
+      )}
+
       <div className="card-top">
         <span className={`rank-badge ${RANK_CLASSES[product.rank]}`}>
           {RANK_LABELS[product.rank]}
@@ -26,6 +32,11 @@ export default function ProductCard({ product }) {
           <span className="product-price">{product.price}</span>
           <PriceTrendBadge trend={product.priceTrend} />
         </div>
+        {product.rating && (
+          <div className="product-rating">
+            ⭐ {product.rating} ({product.reviewCount} reviews)
+          </div>
+        )}
       </div>
 
       <div className="scores">
@@ -42,6 +53,12 @@ export default function ProductCard({ product }) {
           <span key={t} className="tag tag-warn">{t}</span>
         ))}
       </div>
+
+      {product.url && (
+        <a href={product.url} target="_blank" rel="noopener noreferrer" className="view-btn">
+          View on Amazon <ExternalLink size={13} />
+        </a>
+      )}
     </div>
   );
 }
