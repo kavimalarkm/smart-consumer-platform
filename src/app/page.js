@@ -14,7 +14,7 @@ async function handleSearch() {
     setLoading(true);
     try {
       const res = await fetch(
-        `http://localhost:8000/search?query=${encodeURIComponent(query)}`
+        `https://smart-consumer-backend.onrender.com/search?query=${encodeURIComponent(query)}`
       );
       const data = await res.json();
       setProducts(data.products);
