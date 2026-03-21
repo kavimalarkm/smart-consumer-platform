@@ -86,9 +86,9 @@ async def search(query: str = ""):
 
     async with httpx.AsyncClient() as client:
         flipkart_res = await client.get(
-            "https://real-time-flipkart.p.rapidapi.com/search",
+            "https://real-time-flipkart.p.rapidapi.com/search.php",
             headers=headers_flipkart,
-            params={"q": query, "page": "1"}
+            params={"query": query, "page": "1", "sort": "relevance"}
         )
         flipkart_data = flipkart_res.json()
         flipkart_products = flipkart_data[:3] if isinstance(flipkart_data, list) else []
