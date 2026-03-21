@@ -643,3 +643,57 @@ body {
 
 .platform-amazon { background: #fff3e0; color: #e65100; }
 .platform-flipkart { background: #e3f2fd; color: #1565c0; }
+
+/* Search history */
+.search-history {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+  justify-content: center;
+}
+
+.history-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.history-chip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.history-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Better loading dots */
+.loading-dots {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.loading-dots span {
+  width: 10px;
+  height: 10px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: bounce 0.8s infinite alternate;
+}
+
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  from { transform: translateY(0); opacity: 0.5; }
+  to { transform: translateY(-10px); opacity: 1; }
+}

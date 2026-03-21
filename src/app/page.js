@@ -11,21 +11,28 @@ export default function Home() {
   const [sortBy, setSortBy] = useState("rank");
   const [filterPlatform, setFilterPlatform] = useState("all");
   const [darkMode, setDarkMode] = useState(false);
+  const [history, setHistory] = useState([]);
 
   useEffect(() => {
     document.body.classList.toggle("dark-mode", darkMode);
   }, [darkMode]);
 
-  async function handleSearch() {
-    if (!query.trim()) return;
+  async function handleSearch(q) {
+    const searchQuery = q || query;
+    if (!searchQuery.trim()) return;
+    setQuery(searchQuery);
     setLoading(true);
     try {
       const res = await fetch(
-        `https://smart-consumer-backend.onrender.com/search?query=${encodeURIComponent(query)}`
+        `https://smart-consumer-backend.onrender.com/search?query=${encodeURIComponent(searchQuery)}`
       );
       const data = await res.json();
       setProducts(data.products);
       setSearched(true);
+      setHistory((prev) => {
+        const updated = [searchQuery, ...prev.filter((h) => h !== searchQuery)];
+        return updated.slice(0, 5);
+      });
     } catch (error) {
       console.error("API error:", error);
     } finally {
@@ -75,11 +82,24 @@ export default function Home() {
           detection, price trends, and image authenticity checks.
         </p>
         <SearchBar query={query} setQuery={setQuery} onSearch={handleSearch} />
+
+        {history.length > 0 && (
+          <div className="search-history">
+            <span className="history-label">Recent:</span>
+            {history.map((h) => (
+              <button key={h} className="history-chip" onClick={() => handleSearch(h)}>
+                🕐 {h}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       {loading && (
         <div className="loading-state">
-          <div className="spinner" />
+          <div className="loading-dots">
+            <span></span><span></span><span></span>
+          </div>
           <p>Analyzing reviews, prices and images…</p>
         </div>
       )}
@@ -145,7 +165,7 @@ export default function Home() {
               "Laptop under ₹50000 for students",
               "Wireless earbuds under ₹3000",
             ].map((q) => (
-              <button key={q} className="eq-chip" onClick={() => setQuery(q)}>
+              <button key={q} className="eq-chip" onClick={() => handleSearch(q)}>
                 {q}
               </button>
             ))}
