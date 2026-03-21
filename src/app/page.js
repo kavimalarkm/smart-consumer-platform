@@ -177,14 +177,15 @@ export default function Home() {
             </div>
           </div>
           <div className="product-grid">
-            {getSortedProducts().map((p) => (
-              <ProductCard
-                key={p.id}
-                product={p}
-                onCompare={handleCompare}
-                isComparing={!!compareList.find((c) => c.id === p.id)}
-              />
-            ))}
+          {getSortedProducts().map((p, i) => (
+  <ProductCard
+    key={p.id}
+    product={p}
+    onCompare={handleCompare}
+    isComparing={!!compareList.find((c) => c.id === p.id)}
+    isBestDeal={i === 0}
+  />
+))}
           </div>
         </>
       )}

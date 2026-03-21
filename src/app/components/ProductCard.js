@@ -1,5 +1,6 @@
+import { useState } from "react";
 import ScoreBar from "./ScoreBar";
-import { TrendingDown, TrendingUp, Minus, ExternalLink } from "lucide-react";
+import { TrendingDown, TrendingUp, Minus, ExternalLink, Bell } from "lucide-react";
 
 const RANK_LABELS = { 1: "Best Choice", 2: "2nd Choice", 3: "3rd Choice" };
 const RANK_CLASSES = { 1: "badge-rank1", 2: "badge-rank2", 3: "badge-rank3" };
@@ -12,11 +13,25 @@ function PriceTrendBadge({ trend }) {
   return <span className="trend trend-stable"><Minus size={13} /> Stable price</span>;
 }
 
-export default function ProductCard({ product, onCompare, isComparing }) {
+export default function ProductCard({ product, onCompare, isComparing, isBestDeal }) {
   const isBest = product.rank === 1;
+  const [alertSet, setAlertSet] = useState(false);
+  const [alertPrice, setAlertPrice] = useState("");
+  const [showAlert, setShowAlert] = useState(false);
+
+  function handleSetAlert() {
+    if (alertPrice) {
+      setAlertSet(true);
+      setShowAlert(false);
+      alert(`✅ Alert set! We'll notify you when ${product.name} drops to ₹${alertPrice}`);
+    }
+  }
 
   return (
     <div className={`product-card ${isBest ? "product-card--best" : ""} ${isComparing ? "product-card--comparing" : ""}`}>
+      {isBestDeal && (
+        <div className="best-deal-banner">🔥 Best Deal</div>
+      )}
       {product.image && (
         <div className="product-image-wrap">
           <img
@@ -61,6 +76,20 @@ export default function ProductCard({ product, onCompare, isComparing }) {
           <span key={t} className="tag tag-warn">{t}</span>
         ))}
       </div>
+
+      {showAlert && (
+        <div className="alert-box">
+          <input
+            type="number"
+            placeholder="Enter target price ₹"
+            value={alertPrice}
+            onChange={(e) => setAlertPrice(e.target.value)}
+            className="alert-input"
+          />
+          <button className="alert-set-btn" onClick={handleSetAlert}>Set Alert</button>
+        </div>
+      )}
+
       <div className="card-actions">
         {product.url && (
           <a href={product.url} target="_blank" rel="noopener noreferrer" className="view-btn">
@@ -72,6 +101,13 @@ export default function ProductCard({ product, onCompare, isComparing }) {
           onClick={() => onCompare(product)}
         >
           {isComparing ? "✓ Added" : "+ Compare"}
+        </button>
+        <button
+          className={`alert-btn ${alertSet ? "alert-btn--active" : ""}`}
+          onClick={() => setShowAlert(!showAlert)}
+          title="Set price alert"
+        >
+          <Bell size={13} />
         </button>
       </div>
     </div>

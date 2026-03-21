@@ -877,3 +877,74 @@ body {
   background: var(--green-light);
   border-radius: var(--radius-sm);
 }
+
+/* Best deal banner */
+.best-deal-banner {
+  background: linear-gradient(90deg, #ff6b35, #f7c948);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  text-align: center;
+  margin: -1.25rem -1.25rem 1rem -1.25rem;
+  border-radius: var(--radius) var(--radius) 0 0;
+  letter-spacing: 0.05em;
+}
+
+/* Price alert */
+.alert-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 8px 10px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.18s;
+  display: flex;
+  align-items: center;
+}
+
+.alert-btn:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.alert-btn--active {
+  background: var(--amber-light);
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.alert-box {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  margin-bottom: 4px;
+}
+
+.alert-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  font-size: 13px;
+  background: var(--surface);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.alert-input:focus {
+  border-color: var(--accent);
+}
+
+.alert-set-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 99px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
