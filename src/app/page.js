@@ -9,6 +9,7 @@ export default function Home() {
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState("rank");
+const [filterPlatform, setFilterPlatform] = useState("all");
 
   async function handleSearch() {
     if (!query.trim()) return;
@@ -27,8 +28,11 @@ export default function Home() {
     }
   }
 
-  function getSortedProducts() {
-    const p = [...products];
+ function getSortedProducts() {
+    let p = [...products];
+    if (filterPlatform !== "all") {
+      p = p.filter((x) => x.platform === filterPlatform);
+    }
     if (sortBy === "price_low") {
       return p.sort((a, b) => {
         const pa = parseFloat((a.price || "0").replace(/[^0-9.]/g, "")) || 0;
@@ -77,6 +81,22 @@ export default function Home() {
             <span className="results-label">
               {products.length} products analyzed for &ldquo;{query}&rdquo;
             </span>
+<div className="filter-buttons">
+  <span className="sort-label">Platform:</span>
+  {[
+    { key: "all", label: "All" },
+    { key: "Amazon", label: "Amazon" },
+    { key: "Flipkart", label: "Flipkart" },
+  ].map((f) => (
+    <button
+      key={f.key}
+      className={`sort-btn ${filterPlatform === f.key ? "sort-btn--active" : ""}`}
+      onClick={() => setFilterPlatform(f.key)}
+    >
+      {f.label}
+    </button>
+  ))}
+</div>
             <div className="sort-buttons">
               <span className="sort-label">Sort by:</span>
               {[

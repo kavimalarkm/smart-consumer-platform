@@ -519,3 +519,10 @@ body {
   border-color: var(--accent);
   color: white;
 }
+
+.filter-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
