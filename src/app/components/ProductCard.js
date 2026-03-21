@@ -59,7 +59,7 @@ export default function ProductCard({ product }) {
 
       {product.url && (
         <a href={product.url} target="_blank" rel="noopener noreferrer" className="view-btn">
-          View on Amazon <ExternalLink size={13} />
+         View on {product.platform} <ExternalLink size={13} />
         </a>
       )}
     </div>
