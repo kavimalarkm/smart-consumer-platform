@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SearchBar from "./components/SearchBar";
 import ProductCard from "./components/ProductCard";
 
@@ -9,7 +9,12 @@ export default function Home() {
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [sortBy, setSortBy] = useState("rank");
-const [filterPlatform, setFilterPlatform] = useState("all");
+  const [filterPlatform, setFilterPlatform] = useState("all");
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+  }, [darkMode]);
 
   async function handleSearch() {
     if (!query.trim()) return;
@@ -28,7 +33,7 @@ const [filterPlatform, setFilterPlatform] = useState("all");
     }
   }
 
- function getSortedProducts() {
+  function getSortedProducts() {
     let p = [...products];
     if (filterPlatform !== "all") {
       p = p.filter((x) => x.platform === filterPlatform);
@@ -58,6 +63,10 @@ const [filterPlatform, setFilterPlatform] = useState("all");
 
   return (
     <main className="main-container">
+      <button className="dark-mode-btn" onClick={() => setDarkMode(!darkMode)}>
+        {darkMode ? "☀️ Light" : "🌙 Dark"}
+      </button>
+
       <header className="hero">
         <div className="hero-badge">AI-Powered</div>
         <h1 className="hero-title">Smart Consumer Intelligence</h1>
@@ -79,41 +88,44 @@ const [filterPlatform, setFilterPlatform] = useState("all");
         <>
           <div className="results-toolbar">
             <span className="results-label">
-              {products.length} products analyzed for &ldquo;{query}&rdquo;
+              <span className="results-count">{getSortedProducts().length}</span>
+              &nbsp;products found for &ldquo;{query}&rdquo;
             </span>
-<div className="filter-buttons">
-  <span className="sort-label">Platform:</span>
-  {[
-    { key: "all", label: "All" },
-    { key: "Amazon", label: "Amazon" },
-    { key: "Flipkart", label: "Flipkart" },
-  ].map((f) => (
-    <button
-      key={f.key}
-      className={`sort-btn ${filterPlatform === f.key ? "sort-btn--active" : ""}`}
-      onClick={() => setFilterPlatform(f.key)}
-    >
-      {f.label}
-    </button>
-  ))}
-</div>
-            <div className="sort-buttons">
-              <span className="sort-label">Sort by:</span>
-              {[
-                { key: "rank", label: "Best Match" },
-                { key: "price_low", label: "Price ↑" },
-                { key: "price_high", label: "Price ↓" },
-                { key: "rating", label: "Rating" },
-                { key: "trust", label: "Trust" },
-              ].map((s) => (
-                <button
-                  key={s.key}
-                  className={`sort-btn ${sortBy === s.key ? "sort-btn--active" : ""}`}
-                  onClick={() => setSortBy(s.key)}
-                >
-                  {s.label}
-                </button>
-              ))}
+            <div className="toolbar-right">
+              <div className="filter-buttons">
+                <span className="sort-label">Platform:</span>
+                {[
+                  { key: "all", label: "All" },
+                  { key: "Amazon", label: "Amazon" },
+                  { key: "Flipkart", label: "Flipkart" },
+                ].map((f) => (
+                  <button
+                    key={f.key}
+                    className={`sort-btn ${filterPlatform === f.key ? "sort-btn--active" : ""}`}
+                    onClick={() => setFilterPlatform(f.key)}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              <div className="sort-buttons">
+                <span className="sort-label">Sort:</span>
+                {[
+                  { key: "rank", label: "Best Match" },
+                  { key: "price_low", label: "Price ↑" },
+                  { key: "price_high", label: "Price ↓" },
+                  { key: "rating", label: "Rating" },
+                  { key: "trust", label: "Trust" },
+                ].map((s) => (
+                  <button
+                    key={s.key}
+                    className={`sort-btn ${sortBy === s.key ? "sort-btn--active" : ""}`}
+                    onClick={() => setSortBy(s.key)}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           <div className="product-grid">

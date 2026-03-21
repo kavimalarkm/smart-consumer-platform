@@ -526,3 +526,120 @@ body {
   gap: 6px;
   flex-wrap: wrap;
 }
+
+/* Dark mode */
+.dark-mode {
+  --bg: #0f0e0c;
+  --surface: #1a1917;
+  --border: rgba(255,255,255,0.08);
+  --text-primary: #f7f6f2;
+  --text-secondary: #9a9890;
+  --accent-light: #1a2040;
+}
+
+.dark-mode-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.18s;
+  z-index: 999;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+}
+
+.dark-mode-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Results count badge */
+.results-count {
+  display: inline-block;
+  background: var(--accent);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+
+/* Toolbar */
+.toolbar-right {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.results-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 1.25rem;
+  justify-content: space-between;
+}
+
+/* Filter buttons */
+.filter-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Sort buttons */
+.sort-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sort-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.sort-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.sort-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sort-btn--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+/* Platform badges */
+.platform-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 99px;
+  margin-bottom: 6px;
+}
+
+.platform-amazon { background: #fff3e0; color: #e65100; }
+.platform-flipkart { background: #e3f2fd; color: #1565c0; }
