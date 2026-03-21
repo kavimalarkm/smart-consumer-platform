@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import SearchBar from "./components/SearchBar";
 import ProductCard from "./components/ProductCard";
+import CompareModal from "./components/CompareModal";
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -12,6 +13,8 @@ export default function Home() {
   const [filterPlatform, setFilterPlatform] = useState("all");
   const [darkMode, setDarkMode] = useState(false);
   const [history, setHistory] = useState([]);
+  const [compareList, setCompareList] = useState([]);
+  const [showCompare, setShowCompare] = useState(false);
 
   useEffect(() => {
     document.body.classList.toggle("dark-mode", darkMode);
@@ -40,6 +43,16 @@ export default function Home() {
     }
   }
 
+  function handleCompare(product) {
+    setCompareList((prev) => {
+      if (prev.find((p) => p.id === product.id)) {
+        return prev.filter((p) => p.id !== product.id);
+      }
+      if (prev.length >= 2) return prev;
+      return [...prev, product];
+    });
+  }
+
   function getSortedProducts() {
     let p = [...products];
     if (filterPlatform !== "all") {
@@ -59,12 +72,10 @@ export default function Home() {
         return pb - pa;
       });
     }
-    if (sortBy === "rating") {
+    if (sortBy === "rating")
       return p.sort((a, b) => parseFloat(b.rating || 0) - parseFloat(a.rating || 0));
-    }
-    if (sortBy === "trust") {
+    if (sortBy === "trust")
       return p.sort((a, b) => b.trustScore - a.trustScore);
-    }
     return p.sort((a, b) => a.rank - b.rank);
   }
 
@@ -74,6 +85,24 @@ export default function Home() {
         {darkMode ? "☀️ Light" : "🌙 Dark"}
       </button>
 
+      {compareList.length > 0 && (
+        <div className="compare-bar">
+          <span>{compareList.length} product{compareList.length > 1 ? "s" : ""} selected</span>
+          {compareList.length === 2 && (
+            <button className="compare-now-btn" onClick={() => setShowCompare(true)}>
+              Compare Now
+            </button>
+          )}
+          <button className="compare-clear-btn" onClick={() => setCompareList([])}>
+            Clear
+          </button>
+        </div>
+      )}
+
+      {showCompare && compareList.length === 2 && (
+        <CompareModal products={compareList} onClose={() => setShowCompare(false)} />
+      )}
+
       <header className="hero">
         <div className="hero-badge">AI-Powered</div>
         <h1 className="hero-title">Smart Consumer Intelligence</h1>
@@ -82,7 +111,6 @@ export default function Home() {
           detection, price trends, and image authenticity checks.
         </p>
         <SearchBar query={query} setQuery={setQuery} onSearch={handleSearch} />
-
         {history.length > 0 && (
           <div className="search-history">
             <span className="history-label">Recent:</span>
@@ -150,7 +178,12 @@ export default function Home() {
           </div>
           <div className="product-grid">
             {getSortedProducts().map((p) => (
-              <ProductCard key={p.id} product={p} />
+              <ProductCard
+                key={p.id}
+                product={p}
+                onCompare={handleCompare}
+                isComparing={!!compareList.find((c) => c.id === p.id)}
+              />
             ))}
           </div>
         </>

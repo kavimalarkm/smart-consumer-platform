@@ -12,24 +12,32 @@ function PriceTrendBadge({ trend }) {
   return <span className="trend trend-stable"><Minus size={13} /> Stable price</span>;
 }
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, onCompare, isComparing }) {
   const isBest = product.rank === 1;
 
   return (
-    <div className={`product-card ${isBest ? "product-card--best" : ""}`}>
+    <div className={`product-card ${isBest ? "product-card--best" : ""} ${isComparing ? "product-card--comparing" : ""}`}>
       {product.image && (
         <div className="product-image-wrap">
-          <img src={`https://smart-consumer-backend.onrender.com/image-proxy?url=${encodeURIComponent(product.image)}`} alt={product.name} className="product-image" />
+          <img
+            src={`https://smart-consumer-backend.onrender.com/image-proxy?url=${encodeURIComponent(product.image)}`}
+            alt={product.name}
+            className="product-image"
+          />
         </div>
       )}
 
       <div className="card-top">
-        <span className={`rank-badge ${RANK_CLASSES[product.rank]}`}>
-          {RANK_LABELS[product.rank]}
-        </span>
-<span className={`platform-badge ${product.platform === "Amazon" ? "platform-amazon" : "platform-flipkart"}`}>
-  {product.platform}
-</span>
+        <div className="card-badges">
+          {RANK_LABELS[product.rank] && (
+            <span className={`rank-badge ${RANK_CLASSES[product.rank] || "badge-rank3"}`}>
+              {RANK_LABELS[product.rank] || `#${product.rank}`}
+            </span>
+          )}
+          <span className={`platform-badge ${product.platform === "Amazon" ? "platform-amazon" : "platform-flipkart"}`}>
+            {product.platform}
+          </span>
+        </div>
         <h2 className="product-name">{product.name}</h2>
         <div className="product-meta">
           <span className="product-price">{product.price}</span>
@@ -57,11 +65,19 @@ export default function ProductCard({ product }) {
         ))}
       </div>
 
-      {product.url && (
-        <a href={product.url} target="_blank" rel="noopener noreferrer" className="view-btn">
-         View on {product.platform} <ExternalLink size={13} />
-        </a>
-      )}
+      <div className="card-actions">
+        {product.url && (
+          <a href={product.url} target="_blank" rel="noopener noreferrer" className="view-btn">
+            View on {product.platform} <ExternalLink size={13} />
+          </a>
+        )}
+        <button
+          className={`compare-btn ${isComparing ? "compare-btn--active" : ""}`}
+          onClick={() => onCompare(product)}
+        >
+          {isComparing ? "✓ Added" : "+ Compare"}
+        </button>
+      </div>
     </div>
   );
 }
