@@ -455,3 +455,23 @@ body {
   color: var(--accent);
   background: var(--accent-light);
 }
+
+/* Platform badges */
+.platform-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 99px;
+  margin-bottom: 6px;
+}
+
+.platform-amazon {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.platform-flipkart {
+  background: #e3f2fd;
+  color: #1565c0;
+}

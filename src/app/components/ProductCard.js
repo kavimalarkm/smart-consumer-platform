@@ -27,6 +27,9 @@ export default function ProductCard({ product }) {
         <span className={`rank-badge ${RANK_CLASSES[product.rank]}`}>
           {RANK_LABELS[product.rank]}
         </span>
+<span className={`platform-badge ${product.platform === "Amazon" ? "platform-amazon" : "platform-flipkart"}`}>
+  {product.platform}
+</span>
         <h2 className="product-name">{product.name}</h2>
         <div className="product-meta">
           <span className="product-price">{product.price}</span>

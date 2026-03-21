@@ -15,7 +15,8 @@ app.add_middleware(
 )
 
 RAPIDAPI_KEY = "3cb5bef83emshb75657b8afe33b3p139e02jsn5a1d89e95309"
-RAPIDAPI_HOST = "real-time-amazon-data.p.rapidapi.com"
+AMAZON_HOST = "real-time-amazon-data.p.rapidapi.com"
+FLIPKART_HOST = "real-time-flipkart.p.rapidapi.com"
 
 def analyze_sentiment(reviews):
     if not reviews:
@@ -62,46 +63,47 @@ async def image_proxy(url: str):
 
 @app.get("/search")
 async def search(query: str = ""):
-    headers = {
+    headers_amazon = {
         "x-rapidapi-key": RAPIDAPI_KEY,
-        "x-rapidapi-host": RAPIDAPI_HOST,
+        "x-rapidapi-host": AMAZON_HOST,
+    }
+    headers_flipkart = {
+        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-host": FLIPKART_HOST,
     }
 
+    amazon_products = []
+    flipkart_products = []
+
     async with httpx.AsyncClient() as client:
-        search_res = await client.get(
+        amazon_res = await client.get(
             "https://real-time-amazon-data.p.rapidapi.com/search",
-            headers=headers,
+            headers=headers_amazon,
             params={"query": query, "page": "1", "country": "IN", "sort_by": "RELEVANCE"}
         )
-        search_data = search_res.json()
+        amazon_data = amazon_res.json()
+        amazon_products = amazon_data.get("data", {}).get("products", [])[:3]
 
-    products = search_data.get("data", {}).get("products", [])[:3]
+    async with httpx.AsyncClient() as client:
+        flipkart_res = await client.get(
+            "https://real-time-flipkart.p.rapidapi.com/search",
+            headers=headers_flipkart,
+            params={"q": query, "page": "1"}
+        )
+        flipkart_data = flipkart_res.json()
+        flipkart_products = flipkart_data[:3] if isinstance(flipkart_data, list) else []
 
     results = []
-    for i, p in enumerate(products):
+
+    for i, p in enumerate(amazon_products):
         asin = p.get("asin", "")
         title = html.unescape(p.get("product_title", "Unknown"))
         price = p.get("product_price", "N/A")
         rating = p.get("product_star_rating", "0")
         reviews_count = p.get("product_num_ratings", 0)
         image = p.get("product_photo", "")
-        url = p.get("product_url", "")
 
-        reviews = []
-        if asin:
-            async with httpx.AsyncClient() as client:
-                rev_res = await client.get(
-                    "https://real-time-amazon-data.p.rapidapi.com/product-reviews",
-                    headers=headers,
-                    params={"asin": asin, "country": "IN", "page": "1"}
-                )
-                rev_data = rev_res.json()
-                raw_reviews = rev_data.get("data", {}).get("reviews", [])
-                reviews = [html.unescape(r.get("review_comment", "")) for r in raw_reviews[:10] if r.get("review_comment")]
-
-        if not reviews:
-            reviews = ["Good product", "Decent quality", "Not bad", "Could be better", "Average product"]
-
+        reviews = ["Good product", "Decent quality", "Not bad", "Could be better", "Average product"]
         sentiment = analyze_sentiment(reviews)
         trust = detect_fake_reviews(reviews)
         complaints, positives = get_complaints(reviews)
@@ -112,15 +114,51 @@ async def search(query: str = ""):
             "name": title,
             "price": price,
             "image": image,
-            "url": f"https://www.amazon.in/dp/{asin}" if asin else url,
+            "url": f"https://www.amazon.in/dp/{asin}" if asin else "",
             "rating": rating,
             "reviewCount": reviews_count,
+            "platform": "Amazon",
             "priceTrend": "stable",
             "sentiment": sentiment,
             "trustScore": trust,
-            "imageAuth": 80 - (i * 10),
+            "imageAuth": 80 - (i * 5),
             "complaints": complaints,
             "positives": positives,
         })
+
+    for i, p in enumerate(flipkart_products):
+        title = p.get("title", "Unknown")
+        price = f"₹{p.get('price', 'N/A')}"
+        rating = str(p.get("rating", {}).get("average", "0"))
+        reviews_count = p.get("rating", {}).get("count", 0)
+        image = p.get("image", "")
+        pid = p.get("product_id", "")
+
+        reviews = ["Good product", "Decent quality", "Not bad", "Could be better", "Average product"]
+        sentiment = analyze_sentiment(reviews)
+        trust = detect_fake_reviews(reviews)
+        complaints, positives = get_complaints(reviews)
+
+        results.append({
+            "id": len(amazon_products) + i + 1,
+            "rank": len(amazon_products) + i + 1,
+            "name": title,
+            "price": price,
+            "image": image,
+            "url": f"https://www.flipkart.com/product/p/itme?pid={pid}" if pid else "",
+            "rating": rating,
+            "reviewCount": reviews_count,
+            "platform": "Flipkart",
+            "priceTrend": "stable",
+            "sentiment": sentiment,
+            "trustScore": trust,
+            "imageAuth": 75 - (i * 5),
+            "complaints": complaints,
+            "positives": positives,
+        })
+
+    results.sort(key=lambda x: (x["sentiment"] + x["trustScore"] + x["imageAuth"]) / 3, reverse=True)
+    for i, r in enumerate(results):
+        r["rank"] = i + 1
 
     return {"query": query, "total": len(results), "products": results}
