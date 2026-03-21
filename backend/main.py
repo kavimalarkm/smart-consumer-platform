@@ -75,25 +75,35 @@ async def search(query: str = ""):
     amazon_products = []
     flipkart_products = []
 
-    async with httpx.AsyncClient() as client:
-        amazon_res = await client.get(
-            "https://real-time-amazon-data.p.rapidapi.com/search",
-            headers=headers_amazon,
-            params={"query": query, "page": "1", "country": "IN", "sort_by": "RELEVANCE"}
-        )
-        amazon_data = amazon_res.json()
-        amazon_products = amazon_data.get("data", {}).get("products", [])[:3]
+    try:
+        async with httpx.AsyncClient() as client:
+            amazon_res = await client.get(
+                "https://real-time-amazon-data.p.rapidapi.com/search",
+                headers=headers_amazon,
+                params={"query": query, "page": "1", "country": "IN", "sort_by": "RELEVANCE"}
+            )
+            amazon_data = amazon_res.json()
+            amazon_products = amazon_data.get("data", {}).get("products", [])[:3]
+    except:
+        amazon_products = []
 
-    async with httpx.AsyncClient() as client:
-        flipkart_res = await client.get(
-            "https://real-time-flipkart.p.rapidapi.com/search.php",
-            headers=headers_flipkart,
-            params={"query": query, "page": "1", "sort": "relevance"}
-        )
-        flipkart_data = flipkart_res.json()
-        flipkart_products = flipkart_data[:3] if isinstance(flipkart_data, list) else []
+    try:
+        async with httpx.AsyncClient() as client:
+            flipkart_res = await client.get(
+                "https://real-time-flipkart.p.rapidapi.com/search.php",
+                headers=headers_flipkart,
+                params={"query": query, "page": "1", "sort": "relevance"}
+            )
+            flipkart_data = flipkart_res.json()
+            if isinstance(flipkart_data, list):
+                flipkart_products = flipkart_data[:3]
+            elif isinstance(flipkart_data, dict):
+                flipkart_products = flipkart_data.get("products", flipkart_data.get("data", []))[:3]
+    except:
+        flipkart_products = []
 
     results = []
+    reviews = ["Good product", "Decent quality", "Not bad", "Could be better", "Average product"]
 
     for i, p in enumerate(amazon_products):
         asin = p.get("asin", "")
@@ -102,12 +112,9 @@ async def search(query: str = ""):
         rating = p.get("product_star_rating", "0")
         reviews_count = p.get("product_num_ratings", 0)
         image = p.get("product_photo", "")
-
-        reviews = ["Good product", "Decent quality", "Not bad", "Could be better", "Average product"]
         sentiment = analyze_sentiment(reviews)
         trust = detect_fake_reviews(reviews)
         complaints, positives = get_complaints(reviews)
-
         results.append({
             "id": i + 1,
             "rank": i + 1,
@@ -133,12 +140,9 @@ async def search(query: str = ""):
         reviews_count = p.get("rating", {}).get("count", 0)
         image = p.get("image", "")
         pid = p.get("product_id", "")
-
-        reviews = ["Good product", "Decent quality", "Not bad", "Could be better", "Average product"]
         sentiment = analyze_sentiment(reviews)
         trust = detect_fake_reviews(reviews)
         complaints, positives = get_complaints(reviews)
-
         results.append({
             "id": len(amazon_products) + i + 1,
             "rank": len(amazon_products) + i + 1,
