@@ -26,7 +26,6 @@ export default function ProductCard({ product, onCompare, isComparing }) {
           />
         </div>
       )}
-
       <div className="card-top">
         <div className="card-badges">
           {RANK_LABELS[product.rank] && (
@@ -49,13 +48,11 @@ export default function ProductCard({ product, onCompare, isComparing }) {
           </div>
         )}
       </div>
-
       <div className="scores">
         <ScoreBar label="Sentiment" value={product.sentiment} />
         <ScoreBar label="Trust score" value={product.trustScore} />
         <ScoreBar label="Image auth." value={product.imageAuth} />
       </div>
-
       <div className="card-tags">
         {product.positives.map((t) => (
           <span key={t} className="tag tag-ok">{t}</span>
@@ -64,7 +61,6 @@ export default function ProductCard({ product, onCompare, isComparing }) {
           <span key={t} className="tag tag-warn">{t}</span>
         ))}
       </div>
-
       <div className="card-actions">
         {product.url && (
           <a href={product.url} target="_blank" rel="noopener noreferrer" className="view-btn">
