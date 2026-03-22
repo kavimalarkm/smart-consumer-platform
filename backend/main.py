@@ -83,7 +83,7 @@ async def search(query: str = ""):
                 params={"query": query, "page": "1", "country": "IN", "sort_by": "RELEVANCE"}
             )
             amazon_data = amazon_res.json()
-            amazon_products = amazon_data.get("data", {}).get("products", [])[:3]
+            amazon_products = amazon_data.get("data", {}).get("products", [])[:5]
     except:
         amazon_products = []
 
@@ -96,7 +96,7 @@ async def search(query: str = ""):
             )
             flipkart_data = flipkart_res.json()
             if isinstance(flipkart_data, list):
-                flipkart_products = flipkart_data[:3]
+                flipkart_products = flipkart_data[:5]
             elif isinstance(flipkart_data, dict):
                 flipkart_products = flipkart_data.get("products", flipkart_data.get("data", []))[:3]
     except:

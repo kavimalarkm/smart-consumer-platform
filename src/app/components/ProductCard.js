@@ -18,30 +18,47 @@ function PriceTrendBadge({ trend }) {
 export default function ProductCard({ product, onCompare, isComparing, isBestDeal }) {
   const isBest = product.rank === 1;
   const [saved, setSaved] = useState(false);
-  const [alertSet, setAlertSet] = useState(false);
-  const [alertPrice, setAlertPrice] = useState("");
-  const [showAlert, setShowAlert] = useState(false);
 
-  async function handleSave() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      alert("Please login to save products!");
-      return;
-    }
-    const { error } = await supabase.from("saved_products").insert({
-      user_id: user.id,
-      product_name: product.name,
-      product_price: product.price,
-      product_image: product.image,
-      product_url: product.url,
-      platform: product.platform,
-      sentiment: product.sentiment,
-      trust_score: product.trustScore,
-    });
-    if (!error) setSaved(true);
-    else alert("Error saving product!");
+async function handleSave() {
+  if (saved) {
+    alert("Already saved!");
+    return;
+  }
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    alert("Please login to save products!");
+    return;
   }
 
+  const { data: existing } = await supabase
+    .from("saved_products")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("product_name", product.name)
+    .single();
+
+  if (existing) {
+    setSaved(true);
+    alert("Already saved!");
+    return;
+  }
+
+  const { error } = await supabase.from("saved_products").insert({
+    user_id: user.id,
+    product_name: product.name,
+    product_price: product.price,
+    product_image: product.image,
+    product_url: product.url,
+    platform: product.platform,
+    sentiment: product.sentiment,
+    trust_score: product.trustScore,
+  });
+  if (!error) {
+    setSaved(true);
+  } else {
+    alert("Error saving product!");
+  }
+}
   function handleSetAlert() {
     if (alertPrice) {
       setAlertSet(true);
