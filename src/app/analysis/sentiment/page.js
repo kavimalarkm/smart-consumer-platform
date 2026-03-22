@@ -37,7 +37,7 @@ export default function SentimentPage() {
         `https://smart-consumer-backend.onrender.com/search?query=${encodeURIComponent(productQuery)}`
       );
       const data = await res.json();
-      setProductResults(data.products || []);
+      setProductResults(data?.products || []);
     } catch (e) { console.error(e); }
     setProductLoading(false);
   }
