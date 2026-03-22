@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi import FastAPI
+# v2 fixed
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from textblob import TextBlob
