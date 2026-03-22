@@ -98,7 +98,10 @@ async def image_proxy(url: str):
             content=response.content,
             media_type=response.headers.get("content-type", "image/jpeg")
         )
-
+@app.get("/search")
+async def search(query: str = ""):
+    if not query.strip():
+        return {"query": "", "total": 0, "products": []}
 @app.get("/search")
 async def search(query: str = ""):
     headers_amazon = {
