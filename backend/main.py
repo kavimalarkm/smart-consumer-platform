@@ -40,19 +40,13 @@ def detect_fake_reviews(reviews):
 def extract_keywords(reviews):
     positive_reviews = []
     negative_reviews = []
-    
     for review in reviews:
         blob = TextBlob(review)
         if blob.sentiment.polarity > 0.1:
             positive_reviews.append(review)
         elif blob.sentiment.polarity < -0.1:
             negative_reviews.append(review)
-
-    stop_words = {"the", "a", "an", "is", "it", "this", "that", "was", "are", 
-                  "for", "of", "and", "to", "in", "on", "with", "have", "has",
-                  "i", "my", "me", "we", "they", "its", "very", "so", "but",
-                  "not", "no", "be", "been", "as", "at", "by", "from", "or"}
-
+    stop_words = {"the","a","an","is","it","this","that","was","are","for","of","and","to","in","on","with","have","has","i","my","me","we","they","its","very","so","but","not","no","be","been","as","at","by","from","or"}
     def get_keywords(text_list):
         words = []
         for text in text_list:
@@ -60,24 +54,19 @@ def extract_keywords(reviews):
             words.extend([w for w in tokens if w not in stop_words])
         counter = Counter(words)
         return [word for word, count in counter.most_common(5)]
-
     pos_keywords = get_keywords(positive_reviews)
     neg_keywords = get_keywords(negative_reviews)
-
     positives = [k.capitalize() for k in pos_keywords[:3]] if pos_keywords else ["Good quality"]
     complaints = [k.capitalize() for k in neg_keywords[:3]] if neg_keywords else []
-
     return positives, complaints
 
 def get_sentiment_breakdown(reviews):
     if not reviews:
         return {"positive": 0, "neutral": 0, "negative": 0}
-    
     positive = sum(1 for r in reviews if TextBlob(r).sentiment.polarity > 0.1)
     negative = sum(1 for r in reviews if TextBlob(r).sentiment.polarity < -0.1)
     neutral = len(reviews) - positive - negative
     total = len(reviews)
-    
     return {
         "positive": round((positive / total) * 100),
         "neutral": round((neutral / total) * 100),
@@ -98,12 +87,12 @@ async def image_proxy(url: str):
             content=response.content,
             media_type=response.headers.get("content-type", "image/jpeg")
         )
+
 @app.get("/search")
 async def search(query: str = ""):
     if not query.strip():
         return {"query": "", "total": 0, "products": []}
-@app.get("/search")
-async def search(query: str = ""):
+
     headers_amazon = {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": AMAZON_HOST,
@@ -164,7 +153,7 @@ async def search(query: str = ""):
                     )
                     rev_data = rev_res.json()
                     raw_reviews = rev_data.get("data", {}).get("reviews", [])
-                    reviews = [html.unescape(r.get("review_comment", "")) 
+                    reviews = [html.unescape(r.get("review_comment", ""))
                               for r in raw_reviews[:15] if r.get("review_comment")]
             except:
                 pass
@@ -232,30 +221,27 @@ async def search(query: str = ""):
     results.sort(key=lambda x: (x["sentiment"] + x["trustScore"] + x["imageAuth"]) / 3, reverse=True)
     for i, r in enumerate(results):
         r["rank"] = i + 1
+
+    return {"query": query, "total": len(results), "products": results}
+
 @app.get("/analyze-sentiment")
 async def analyze_sentiment_endpoint(text: str = ""):
     if not text.strip():
         return {"error": "No text provided"}
-    
     sentences = [s.strip() for s in text.replace(".", ".|||").replace("!", ".|||").replace("?", ".|||").split("|||") if s.strip()]
     if not sentences:
         sentences = [text]
-    
     scores = []
     for s in sentences:
         blob = TextBlob(s)
         scores.append(blob.sentiment.polarity)
-    
     avg = sum(scores) / len(scores)
     score = round((avg + 1) / 2 * 100)
-    
     positive = sum(1 for s in scores if s > 0.1)
     negative = sum(1 for s in scores if s < -0.1)
     neutral = len(scores) - positive - negative
     total = len(scores)
-    
     sentiment = "Positive" if avg > 0.1 else "Negative" if avg < -0.1 else "Neutral"
-    
     return {
         "sentiment": sentiment,
         "score": score,
@@ -263,5 +249,3 @@ async def analyze_sentiment_endpoint(text: str = ""):
         "neutral": round((neutral / total) * 100),
         "negative": round((negative / total) * 100),
     }
-
-    return {"query": query, "total": len(results), "products": results}
