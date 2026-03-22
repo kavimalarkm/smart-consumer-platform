@@ -1,6 +1,7 @@
 import "./globals.css";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import KeepAlive from "./components/KeepAlive";
 
 export const metadata = {
   title: "Smart Consumer Intelligence Platform",
@@ -12,6 +13,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <Navbar />
+        <KeepAlive />
         {children}
         <Footer />
       </body>
