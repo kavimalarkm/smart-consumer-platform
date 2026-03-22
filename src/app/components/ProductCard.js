@@ -1,6 +1,8 @@
+"use client";
 import { useState } from "react";
 import ScoreBar from "./ScoreBar";
-import { TrendingDown, TrendingUp, Minus, ExternalLink, Bell } from "lucide-react";
+import { TrendingDown, TrendingUp, Minus, ExternalLink, Bookmark, Bell } from "lucide-react";
+import { supabase } from "../lib/supabase";
 
 const RANK_LABELS = { 1: "Best Choice", 2: "2nd Choice", 3: "3rd Choice" };
 const RANK_CLASSES = { 1: "badge-rank1", 2: "badge-rank2", 3: "badge-rank3" };
@@ -15,9 +17,30 @@ function PriceTrendBadge({ trend }) {
 
 export default function ProductCard({ product, onCompare, isComparing, isBestDeal }) {
   const isBest = product.rank === 1;
+  const [saved, setSaved] = useState(false);
   const [alertSet, setAlertSet] = useState(false);
   const [alertPrice, setAlertPrice] = useState("");
   const [showAlert, setShowAlert] = useState(false);
+
+  async function handleSave() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("Please login to save products!");
+      return;
+    }
+    const { error } = await supabase.from("saved_products").insert({
+      user_id: user.id,
+      product_name: product.name,
+      product_price: product.price,
+      product_image: product.image,
+      product_url: product.url,
+      platform: product.platform,
+      sentiment: product.sentiment,
+      trust_score: product.trustScore,
+    });
+    if (!error) setSaved(true);
+    else alert("Error saving product!");
+  }
 
   function handleSetAlert() {
     if (alertPrice) {
@@ -29,9 +52,7 @@ export default function ProductCard({ product, onCompare, isComparing, isBestDea
 
   return (
     <div className={`product-card ${isBest ? "product-card--best" : ""} ${isComparing ? "product-card--comparing" : ""}`}>
-      {isBestDeal && (
-        <div className="best-deal-banner">🔥 Best Deal</div>
-      )}
+      {isBestDeal && <div className="best-deal-banner">🔥 Best Deal</div>}
       {product.image && (
         <div className="product-image-wrap">
           <img
@@ -100,7 +121,14 @@ export default function ProductCard({ product, onCompare, isComparing, isBestDea
           className={`compare-btn ${isComparing ? "compare-btn--active" : ""}`}
           onClick={() => onCompare(product)}
         >
-          {isComparing ? "✓ Added" : "+ Compare"}
+          {isComparing ? "✓" : "+ Compare"}
+        </button>
+        <button
+          className={`save-btn ${saved ? "save-btn--active" : ""}`}
+          onClick={handleSave}
+          title="Save product"
+        >
+          <Bookmark size={13} />
         </button>
         <button
           className={`alert-btn ${alertSet ? "alert-btn--active" : ""}`}
