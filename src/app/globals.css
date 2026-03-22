@@ -1950,3 +1950,56 @@ body {
   background: var(--accent-light);
   color: var(--accent);
 }
+
+/* Sentiment steps row */
+.sentiment-steps-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.sentiment-step-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.sentiment-step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sentiment-step-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sentiment-step-desc {
+  font-size: 10px;
+  color: var(--text-secondary);
+  max-width: 100px;
+}
+
+.sentiment-step-arrow {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin: 0 8px;
+}
