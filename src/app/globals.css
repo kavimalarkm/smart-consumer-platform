@@ -1907,3 +1907,46 @@ body {
 @media (max-width: 640px) {
   .analysis-grid { grid-template-columns: 1fr; }
 }
+
+/* Navbar dropdown */
+.nav-dropdown-wrap {
+  position: relative;
+}
+
+.nav-dropdown-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.nav-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px;
+  min-width: 220px;
+  z-index: 200;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.nav-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+
+.nav-dropdown-item:hover {
+  background: var(--accent-light);
+  color: var(--accent);
+}
