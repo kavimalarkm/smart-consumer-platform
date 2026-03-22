@@ -1,10 +1,52 @@
 "use client";
 import { useState } from "react";
 
+const FEATURES = [
+  {
+    id: "sentiment",
+    icon: "💬",
+    title: "Sentiment Analysis",
+    short: "AI reads real reviews and scores them positive, neutral, or negative.",
+    detail: "Our AI uses TextBlob NLP to analyze the sentiment polarity of each review. Each review is scored from -1 (very negative) to +1 (very positive) and converted to a 0-100% score.",
+    demo: true,
+  },
+  {
+    id: "fake",
+    icon: "🔍",
+    title: "Fake Review Detection",
+    short: "Detects duplicate reviews, burst posting, and suspicious patterns.",
+    detail: "We check for duplicate text, repeated phrases, and unusual review patterns. The trust score shows what percentage of reviews appear genuine. A score below 60% means many fake reviews were detected.",
+    demo: false,
+  },
+  {
+    id: "price",
+    icon: "📈",
+    title: "Price Trend Analysis",
+    short: "Tracks price history and predicts whether prices will drop or rise.",
+    detail: "We track product prices over time and show a price history chart on the detail page. The system estimates whether the current price is higher or lower than average to help you decide when to buy.",
+    demo: false,
+  },
+  {
+    id: "image",
+    icon: "🖼️",
+    title: "Image Authenticity",
+    short: "Checks if product images are original, edited, or stock photos.",
+    detail: "Our system assigns an image authenticity score based on the product listing. Lower scores may indicate stock photos or edited images. Always check product images carefully before buying.",
+    demo: false,
+  },
+];
+
 export default function About() {
+  const [activeCard, setActiveCard] = useState(null);
   const [demoText, setDemoText] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  function handleCardClick(id) {
+    setActiveCard(activeCard === id ? null : id);
+    setResult(null);
+    setDemoText("");
+  }
 
   async function analyzeSentiment() {
     if (!demoText.trim()) return;
@@ -23,7 +65,6 @@ export default function About() {
 
   return (
     <main className="main-container">
-
       <div className="about-hero">
         <div className="hero-badge">About Us</div>
         <h1 className="hero-title">Smart Consumer Intelligence</h1>
@@ -42,102 +83,85 @@ export default function About() {
         </p>
       </div>
 
-      <div className="about-grid">
-        <div className="about-card">
-          <div className="about-icon">💬</div>
-          <h3 className="about-card-title">Sentiment Analysis</h3>
-          <p className="about-card-text">
-            AI reads real reviews and scores them positive, neutral, or negative
-            using Natural Language Processing.
-          </p>
-        </div>
-        <div className="about-card">
-          <div className="about-icon">🔍</div>
-          <h3 className="about-card-title">Fake Review Detection</h3>
-          <p className="about-card-text">
-            Detects duplicate reviews, burst posting, and suspicious patterns
-            to give you a real trust score.
-          </p>
-        </div>
-        <div className="about-card">
-          <div className="about-icon">📈</div>
-          <h3 className="about-card-title">Price Trend Analysis</h3>
-          <p className="about-card-text">
-            Tracks price history and predicts whether prices will drop,
-            rise, or stay stable.
-          </p>
-        </div>
-        <div className="about-card">
-          <div className="about-icon">🖼️</div>
-          <h3 className="about-card-title">Image Authenticity</h3>
-          <p className="about-card-text">
-            Checks if product images are original, edited, or stock photos
-            so you know what you're buying.
-          </p>
-        </div>
-      </div>
+      <div className="features-section">
+        <h2 className="about-section-title">Our Features</h2>
+        <p style={{textAlign:"center", fontSize:"13px", color:"var(--text-secondary)", marginBottom:"1.5rem"}}>
+          Click any feature card to learn more
+        </p>
 
-      <div className="demo-section">
-        <h2 className="about-section-title">Try Sentiment Analysis Live</h2>
-        <p className="demo-subtitle">Type any product review below and see how our AI analyzes it!</p>
-
-        <div className="demo-box">
-          <textarea
-            className="demo-textarea"
-            placeholder="e.g. This phone has amazing camera quality but the battery drains too fast..."
-            value={demoText}
-            onChange={(e) => setDemoText(e.target.value)}
-            rows={4}
-          />
-          <button className="demo-btn" onClick={analyzeSentiment} disabled={loading}>
-            {loading ? "Analyzing..." : "Analyze Sentiment"}
-          </button>
-
-          {result && !result.error && (
-            <div className="demo-result">
-              <div className="demo-result-score">
-                <div className={`demo-sentiment-badge ${
-                  result.sentiment === "Positive" ? "demo-positive" :
-                  result.sentiment === "Negative" ? "demo-negative" : "demo-neutral"
-                }`}>
-                  {result.sentiment === "Positive" ? "😊" :
-                   result.sentiment === "Negative" ? "😞" : "😐"}
-                  {result.sentiment}
-                </div>
-                <div className="demo-score-val">Score: {result.score}%</div>
-              </div>
-              <div className="demo-breakdown">
-                <div className="demo-bar-wrap">
-                  <div className="demo-bar-label">Positive</div>
-                  <div className="demo-bar-track">
-                    <div className="demo-bar-fill demo-bar-green" style={{width: `${result.positive}%`}} />
-                  </div>
-                  <div className="demo-bar-pct">{result.positive}%</div>
-                </div>
-                <div className="demo-bar-wrap">
-                  <div className="demo-bar-label">Neutral</div>
-                  <div className="demo-bar-track">
-                    <div className="demo-bar-fill demo-bar-amber" style={{width: `${result.neutral}%`}} />
-                  </div>
-                  <div className="demo-bar-pct">{result.neutral}%</div>
-                </div>
-                <div className="demo-bar-wrap">
-                  <div className="demo-bar-label">Negative</div>
-                  <div className="demo-bar-track">
-                    <div className="demo-bar-fill demo-bar-red" style={{width: `${result.negative}%`}} />
-                  </div>
-                  <div className="demo-bar-pct">{result.negative}%</div>
+        <div className="about-grid">
+          {FEATURES.map((f) => (
+            <div key={f.id}>
+              <div
+                className={`about-card feature-card ${activeCard === f.id ? "feature-card--active" : ""}`}
+                onClick={() => handleCardClick(f.id)}
+                style={{cursor: "pointer"}}
+              >
+                <div className="about-icon">{f.icon}</div>
+                <h3 className="about-card-title">{f.title}</h3>
+                <p className="about-card-text">{f.short}</p>
+                <div className="feature-card-cta">
+                  {activeCard === f.id ? "▲ Close" : "▼ Learn more"}
                 </div>
               </div>
+
+              {activeCard === f.id && (
+                <div className="feature-expand">
+                  <p className="feature-detail">{f.detail}</p>
+
+                  {f.demo && (
+                    <div className="demo-box">
+                      <p className="demo-subtitle">Try it yourself — type any review:</p>
+                      <textarea
+                        className="demo-textarea"
+                        placeholder="e.g. This phone has amazing camera quality but the battery drains too fast..."
+                        value={demoText}
+                        onChange={(e) => setDemoText(e.target.value)}
+                        rows={3}
+                      />
+                      <button className="demo-btn" onClick={analyzeSentiment} disabled={loading}>
+                        {loading ? "Analyzing..." : "Analyze Sentiment"}
+                      </button>
+
+                      {result && !result.error && (
+                        <div className="demo-result">
+                          <div className="demo-result-score">
+                            <div className={`demo-sentiment-badge ${
+                              result.sentiment === "Positive" ? "demo-positive" :
+                              result.sentiment === "Negative" ? "demo-negative" : "demo-neutral"
+                            }`}>
+                              {result.sentiment === "Positive" ? "😊" :
+                               result.sentiment === "Negative" ? "😞" : "😐"}
+                              {result.sentiment}
+                            </div>
+                            <div className="demo-score-val">Score: {result.score}%</div>
+                          </div>
+                          <div className="demo-breakdown">
+                            {[
+                              { label: "Positive", val: result.positive, cls: "demo-bar-green" },
+                              { label: "Neutral", val: result.neutral, cls: "demo-bar-amber" },
+                              { label: "Negative", val: result.negative, cls: "demo-bar-red" },
+                            ].map((b) => (
+                              <div key={b.label} className="demo-bar-wrap">
+                                <div className="demo-bar-label">{b.label}</div>
+                                <div className="demo-bar-track">
+                                  <div className={`demo-bar-fill ${b.cls}`} style={{width: `${b.val}%`}} />
+                                </div>
+                                <div className="demo-bar-pct">{b.val}%</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {result?.error && <p className="auth-error">{result.error}</p>}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
-
-          {result?.error && (
-            <p className="auth-error">{result.error}</p>
-          )}
+          ))}
         </div>
       </div>
-
     </main>
   );
 }

@@ -1765,3 +1765,43 @@ body {
   width: 36px;
   text-align: right;
 }
+/* Clickable feature cards */
+.feature-card {
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.feature-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(26,60,255,0.08);
+}
+
+.feature-card--active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.feature-card-cta {
+  font-size: 12px;
+  color: var(--accent);
+  margin-top: 10px;
+  font-weight: 500;
+}
+
+.feature-expand {
+  background: var(--accent-light);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-top: -4px;
+  margin-bottom: 1rem;
+}
+
+.feature-detail {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 1rem;
+}
+
+.features-section { margin-bottom: 3rem; }
