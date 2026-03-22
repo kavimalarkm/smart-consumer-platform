@@ -103,8 +103,23 @@ async def search(query: str = ""):
         flipkart_products = []
 
     results = []
-    reviews = ["Good product", "Decent quality", "Not bad", "Could be better", "Average product"]
+    reviews = []
+if asin:
+    try:
+        async with httpx.AsyncClient(timeout=10) as rev_client:
+            rev_res = await rev_client.get(
+                "https://real-time-amazon-data.p.rapidapi.com/product-reviews",
+                headers=headers_amazon,
+                params={"asin": asin, "country": "IN", "page": "1"}
+            )
+            rev_data = rev_res.json()
+            raw_reviews = rev_data.get("data", {}).get("reviews", [])
+            reviews = [html.unescape(r.get("review_comment", "")) for r in raw_reviews[:10] if r.get("review_comment")]
+    except:
+        pass
 
+if not reviews:
+    reviews = ["Good product", "Decent quality", "Not bad", "Could be better", "Average product"]
     for i, p in enumerate(amazon_products):
         asin = p.get("asin", "")
         title = html.unescape(p.get("product_title", "Unknown"))
