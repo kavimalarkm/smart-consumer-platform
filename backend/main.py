@@ -4,6 +4,8 @@ from fastapi.responses import Response
 from textblob import TextBlob
 import httpx
 import html
+from collections import Counter
+import re
 
 app = FastAPI()
 
@@ -35,16 +37,52 @@ def detect_fake_reviews(reviews):
     total = len(reviews)
     return round((unique / total) * 100)
 
-def get_complaints(reviews):
-    complaints = []
-    positives = []
-    for r in reviews:
-        blob = TextBlob(r)
-        if blob.sentiment.polarity < 0:
-            complaints.append(r[:40])
-        else:
-            positives.append(r[:40])
-    return complaints[:2], positives[:2]
+def extract_keywords(reviews):
+    positive_reviews = []
+    negative_reviews = []
+    
+    for review in reviews:
+        blob = TextBlob(review)
+        if blob.sentiment.polarity > 0.1:
+            positive_reviews.append(review)
+        elif blob.sentiment.polarity < -0.1:
+            negative_reviews.append(review)
+
+    stop_words = {"the", "a", "an", "is", "it", "this", "that", "was", "are", 
+                  "for", "of", "and", "to", "in", "on", "with", "have", "has",
+                  "i", "my", "me", "we", "they", "its", "very", "so", "but",
+                  "not", "no", "be", "been", "as", "at", "by", "from", "or"}
+
+    def get_keywords(text_list):
+        words = []
+        for text in text_list:
+            tokens = re.findall(r'\b[a-z]{4,}\b', text.lower())
+            words.extend([w for w in tokens if w not in stop_words])
+        counter = Counter(words)
+        return [word for word, count in counter.most_common(5)]
+
+    pos_keywords = get_keywords(positive_reviews)
+    neg_keywords = get_keywords(negative_reviews)
+
+    positives = [k.capitalize() for k in pos_keywords[:3]] if pos_keywords else ["Good quality"]
+    complaints = [k.capitalize() for k in neg_keywords[:3]] if neg_keywords else []
+
+    return positives, complaints
+
+def get_sentiment_breakdown(reviews):
+    if not reviews:
+        return {"positive": 0, "neutral": 0, "negative": 0}
+    
+    positive = sum(1 for r in reviews if TextBlob(r).sentiment.polarity > 0.1)
+    negative = sum(1 for r in reviews if TextBlob(r).sentiment.polarity < -0.1)
+    neutral = len(reviews) - positive - negative
+    total = len(reviews)
+    
+    return {
+        "positive": round((positive / total) * 100),
+        "neutral": round((neutral / total) * 100),
+        "negative": round((negative / total) * 100),
+    }
 
 @app.get("/")
 def root():
@@ -98,28 +136,12 @@ async def search(query: str = ""):
             if isinstance(flipkart_data, list):
                 flipkart_products = flipkart_data[:5]
             elif isinstance(flipkart_data, dict):
-                flipkart_products = flipkart_data.get("products", flipkart_data.get("data", []))[:3]
+                flipkart_products = flipkart_data.get("products", flipkart_data.get("data", []))[:5]
     except:
         flipkart_products = []
 
     results = []
-    reviews = []
-if asin:
-    try:
-        async with httpx.AsyncClient(timeout=10) as rev_client:
-            rev_res = await rev_client.get(
-                "https://real-time-amazon-data.p.rapidapi.com/product-reviews",
-                headers=headers_amazon,
-                params={"asin": asin, "country": "IN", "page": "1"}
-            )
-            rev_data = rev_res.json()
-            raw_reviews = rev_data.get("data", {}).get("reviews", [])
-            reviews = [html.unescape(r.get("review_comment", "")) for r in raw_reviews[:10] if r.get("review_comment")]
-    except:
-        pass
 
-if not reviews:
-    reviews = ["Good product", "Decent quality", "Not bad", "Could be better", "Average product"]
     for i, p in enumerate(amazon_products):
         asin = p.get("asin", "")
         title = html.unescape(p.get("product_title", "Unknown"))
@@ -127,9 +149,31 @@ if not reviews:
         rating = p.get("product_star_rating", "0")
         reviews_count = p.get("product_num_ratings", 0)
         image = p.get("product_photo", "")
+
+        reviews = []
+        if asin:
+            try:
+                async with httpx.AsyncClient(timeout=10) as rev_client:
+                    rev_res = await rev_client.get(
+                        "https://real-time-amazon-data.p.rapidapi.com/product-reviews",
+                        headers=headers_amazon,
+                        params={"asin": asin, "country": "IN", "page": "1"}
+                    )
+                    rev_data = rev_res.json()
+                    raw_reviews = rev_data.get("data", {}).get("reviews", [])
+                    reviews = [html.unescape(r.get("review_comment", "")) 
+                              for r in raw_reviews[:15] if r.get("review_comment")]
+            except:
+                pass
+
+        if not reviews:
+            reviews = ["Good product", "Decent quality", "Not bad", "Could be better", "Average product"]
+
         sentiment = analyze_sentiment(reviews)
         trust = detect_fake_reviews(reviews)
-        complaints, positives = get_complaints(reviews)
+        positives, complaints = extract_keywords(reviews)
+        breakdown = get_sentiment_breakdown(reviews)
+
         results.append({
             "id": i + 1,
             "rank": i + 1,
@@ -146,6 +190,7 @@ if not reviews:
             "imageAuth": 80 - (i * 5),
             "complaints": complaints,
             "positives": positives,
+            "sentimentBreakdown": breakdown,
         })
 
     for i, p in enumerate(flipkart_products):
@@ -155,9 +200,13 @@ if not reviews:
         reviews_count = p.get("rating", {}).get("count", 0)
         image = p.get("image", "")
         pid = p.get("product_id", "")
+
+        reviews = ["Good product", "Decent quality", "Not bad", "Could be better", "Average product"]
         sentiment = analyze_sentiment(reviews)
         trust = detect_fake_reviews(reviews)
-        complaints, positives = get_complaints(reviews)
+        positives, complaints = extract_keywords(reviews)
+        breakdown = get_sentiment_breakdown(reviews)
+
         results.append({
             "id": len(amazon_products) + i + 1,
             "rank": len(amazon_products) + i + 1,
@@ -174,6 +223,7 @@ if not reviews:
             "imageAuth": 75 - (i * 5),
             "complaints": complaints,
             "positives": positives,
+            "sentimentBreakdown": breakdown,
         })
 
     results.sort(key=lambda x: (x["sentiment"] + x["trustScore"] + x["imageAuth"]) / 3, reverse=True)
