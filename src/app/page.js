@@ -190,22 +190,68 @@ export default function Home() {
         </>
       )}
 
-      {!searched && !loading && (
-        <div className="example-queries">
-          <p className="eq-label">Try searching for</p>
-          <div className="eq-chips">
-            {[
-              "Smartphone under ₹20000 with good camera",
-              "Laptop under ₹50000 for students",
-              "Wireless earbuds under ₹3000",
-            ].map((q) => (
-              <button key={q} className="eq-chip" onClick={() => handleSearch(q)}>
-                {q}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+     {!searched && !loading && (
+  <div className="home-sections">
+    <div className="stats-row">
+      <div className="stat-card">
+        <div className="stat-number">10+</div>
+        <div className="stat-label">Products per search</div>
+      </div>
+      <div className="stat-card">
+        <div className="stat-number">2</div>
+        <div className="stat-label">Platforms compared</div>
+      </div>
+      <div className="stat-card">
+        <div className="stat-number">AI</div>
+        <div className="stat-label">Powered analysis</div>
+      </div>
+      <div className="stat-card">
+        <div className="stat-number">Free</div>
+        <div className="stat-label">Always free</div>
+      </div>
+    </div>
+
+    <div className="trending-section">
+      <p className="trending-title">🔥 Trending Searches</p>
+      <div className="trending-grid">
+        {[
+          { emoji: "📱", label: "iPhone 16" },
+          { emoji: "💻", label: "Laptop under 50000" },
+          { emoji: "🎧", label: "Wireless earbuds" },
+          { emoji: "📺", label: "Smart TV 43 inch" },
+          { emoji: "⌚", label: "Smart watch" },
+          { emoji: "📷", label: "DSLR camera" },
+          { emoji: "🎮", label: "Gaming chair" },
+          { emoji: "👟", label: "Nike shoes" },
+        ].map((item) => (
+          <button
+            key={item.label}
+            className="trending-chip"
+            onClick={() => handleSearch(item.label)}
+          >
+            <span className="trending-emoji">{item.emoji}</span>
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <div className="example-queries">
+      <p className="eq-label">Or try these example searches</p>
+      <div className="eq-chips">
+        {[
+          "Smartphone under ₹20000 with good camera",
+          "Laptop under ₹50000 for students",
+          "Wireless earbuds under ₹3000",
+        ].map((q) => (
+          <button key={q} className="eq-chip" onClick={() => handleSearch(q)}>
+            {q}
+          </button>
+        ))}
+      </div>
+    </div>
+  </div>
+)}
     </main>
   );
 }
