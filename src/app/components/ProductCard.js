@@ -1,12 +1,9 @@
 "use client";
 import { useState } from "react";
 import ScoreBar from "./ScoreBar";
-import { TrendingDown, TrendingUp, Minus, ExternalLink, Bookmark, Bell } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useRouter } from "next/navigation";
-import { Share2 } from "lucide-react";
-
-const RANK_LABELS = { 1: "Best Choice", 2: "2nd Choice", 3: "3rd Choice" };
+import { TrendingDown, TrendingUp, Minus, ExternalLink, Bookmark, Bell, Share2 } from "lucide-react";const RANK_LABELS = { 1: "Best Choice", 2: "2nd Choice", 3: "3rd Choice" };
 const RANK_CLASSES = { 1: "badge-rank1", 2: "badge-rank2", 3: "badge-rank3" };
 
 function PriceTrendBadge({ trend }) {
@@ -175,6 +172,8 @@ function handleShare() {
           onClick={() => setShowAlert(!showAlert)}
           title="Set price alert"
         >
+          <Bell size={13} />
+        </button>
 <button
   className="save-btn"
   onClick={handleShare}
@@ -182,8 +181,6 @@ function handleShare() {
 >
   <Share2 size={13} />
 </button>
-          <Bell size={13} />
-        </button>
       </div>
     </div>
   );
