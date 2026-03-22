@@ -10,6 +10,9 @@ export default function SentimentPage() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
+  const [productQuery, setProductQuery] = useState("");
+  const [productResults, setProductResults] = useState([]);
+  const [productLoading, setProductLoading] = useState(false);
 
   async function analyze() {
     if (!text.trim()) return;
@@ -20,11 +23,22 @@ export default function SentimentPage() {
       );
       const data = await res.json();
       setResult(data);
-      setHistory((prev) => [{ text: text.slice(0, 40) + "...", ...data }, ...prev.slice(0, 4)]);
-    } catch (e) {
-      console.error(e);
-    }
+      setHistory((prev) => [{ text: text.slice(0, 30) + "...", ...data }, ...prev.slice(0, 4)]);
+    } catch (e) { console.error(e); }
     setLoading(false);
+  }
+
+  async function analyzeProducts() {
+    if (!productQuery.trim()) return;
+    setProductLoading(true);
+    try {
+      const res = await fetch(
+        `https://smart-consumer-backend.onrender.com/search?query=${encodeURIComponent(productQuery)}`
+      );
+      const data = await res.json();
+      setProductResults(data.products || []);
+    } catch (e) { console.error(e); }
+    setProductLoading(false);
   }
 
   const donutData = result ? {
@@ -36,27 +50,28 @@ export default function SentimentPage() {
     }]
   } : null;
 
-  const barData = history.length > 0 ? {
-    labels: history.map((h, i) => `Review ${history.length - i}`),
+  const productBarData = productResults.length > 0 ? {
+    labels: productResults.map(p => p.name.slice(0, 20) + "..."),
     datasets: [
       {
-        label: "Positive %",
-        data: history.map(h => h.positive),
-        backgroundColor: "#16a34a",
+        label: "Sentiment %",
+        data: productResults.map(p => p.sentiment),
+        backgroundColor: productResults.map(p =>
+          p.sentiment >= 75 ? "#16a34a" :
+          p.sentiment >= 55 ? "#2563eb" :
+          p.sentiment >= 40 ? "#d97706" : "#dc2626"
+        ),
         borderRadius: 6,
-      },
-      {
-        label: "Neutral %",
-        data: history.map(h => h.neutral),
-        backgroundColor: "#d97706",
-        borderRadius: 6,
-      },
-      {
-        label: "Negative %",
-        data: history.map(h => h.negative),
-        backgroundColor: "#dc2626",
-        borderRadius: 6,
-      },
+      }
+    ]
+  } : null;
+
+  const historyBarData = history.length > 1 ? {
+    labels: history.map((_, i) => `Review ${history.length - i}`),
+    datasets: [
+      { label: "Positive %", data: history.map(h => h.positive), backgroundColor: "#16a34a", borderRadius: 4 },
+      { label: "Neutral %", data: history.map(h => h.neutral), backgroundColor: "#d97706", borderRadius: 4 },
+      { label: "Negative %", data: history.map(h => h.negative), backgroundColor: "#dc2626", borderRadius: 4 },
     ]
   } : null;
 
@@ -111,13 +126,13 @@ export default function SentimentPage() {
 
         <div className="analysis-right">
           <div className="analysis-card">
-            <h3 className="analysis-card-title">Try it live</h3>
+            <h3 className="analysis-card-title">Try it live — analyze any review</h3>
             <textarea
               className="demo-textarea"
-              placeholder="Paste any product review here and click Analyze..."
+              placeholder="Paste any product review here..."
               value={text}
               onChange={(e) => setText(e.target.value)}
-              rows={5}
+              rows={4}
             />
             <button className="demo-btn" onClick={analyze} disabled={loading}>
               {loading ? "Analyzing..." : "Analyze Sentiment"}
@@ -135,20 +150,14 @@ export default function SentimentPage() {
                   </div>
                   <div className="sentiment-score-big">{result.score}%</div>
                 </div>
-
-                <div style={{height: "200px", marginTop: "1rem"}}>
+                <div style={{height: "180px", marginTop: "1rem"}}>
                   {donutData && (
-                    <Doughnut
-                      data={donutData}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: { position: "right", labels: { font: { size: 12 } } }
-                        },
-                        cutout: "65%"
-                      }}
-                    />
+                    <Doughnut data={donutData} options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: { legend: { position: "right", labels: { font: { size: 11 } } } },
+                      cutout: "65%"
+                    }} />
                   )}
                 </div>
               </div>
@@ -157,53 +166,79 @@ export default function SentimentPage() {
         </div>
       </div>
 
-      {history.length > 1 && (
-        <div className="analysis-card" style={{marginTop: "1rem"}}>
-          <h3 className="analysis-card-title">Sentiment trend — last {history.length} reviews analyzed</h3>
-          <div style={{height: "220px"}}>
-            {barData && (
-              <Bar
-                data={barData}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: { legend: { position: "top" } },
-                  scales: {
-                    x: { stacked: true },
-                    y: { stacked: true, max: 100 }
+      <div className="analysis-card" style={{marginTop: "1rem"}}>
+        <h3 className="analysis-card-title">Real product sentiment analysis</h3>
+        <p style={{fontSize:"13px",color:"var(--text-secondary)",marginBottom:"1rem"}}>
+          Search any product to see real sentiment scores from actual Amazon reviews
+        </p>
+        <div style={{display:"flex",gap:"8px",marginBottom:"1rem"}}>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="e.g. iPhone 16, Samsung TV, Nike shoes..."
+            value={productQuery}
+            onChange={(e) => setProductQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && analyzeProducts()}
+            style={{flex:1, borderRadius:"99px", padding:"10px 16px", border:"1px solid var(--border)", fontSize:"14px", background:"var(--surface)", color:"var(--text-primary)", outline:"none"}}
+          />
+          <button className="search-btn" onClick={analyzeProducts} disabled={productLoading}>
+            {productLoading ? "Analyzing..." : "Analyze"}
+          </button>
+        </div>
+
+        {productResults.length > 0 && (
+          <div style={{height: "280px"}}>
+            <Bar
+              data={productBarData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                    callbacks: {
+                      label: (ctx) => `Sentiment: ${ctx.raw}%`
+                    }
                   }
-                }}
-              />
-            )}
+                },
+                scales: {
+                  y: { max: 100, beginAtZero: true, ticks: { callback: (v) => v + "%" } },
+                  x: { ticks: { font: { size: 10 } } }
+                }
+              }}
+            />
+          </div>
+        )}
+
+        {productResults.length > 0 && (
+          <div style={{display:"flex",gap:"8px",marginTop:"10px",flexWrap:"wrap"}}>
+            {productResults.map((p) => (
+              <div key={p.id} style={{
+                background: p.sentiment >= 75 ? "#dcfce7" : p.sentiment >= 55 ? "#dbeafe" : p.sentiment >= 40 ? "#fef3c7" : "#fee2e2",
+                borderRadius:"99px", padding:"4px 12px", fontSize:"11px",
+                color: p.sentiment >= 75 ? "#166534" : p.sentiment >= 55 ? "#1e40af" : p.sentiment >= 40 ? "#92400e" : "#991b1b",
+                fontWeight: "500"
+              }}>
+                {p.name.slice(0, 25)}... — {p.sentiment}%
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {historyBarData && (
+        <div className="analysis-card" style={{marginTop: "1rem"}}>
+          <h3 className="analysis-card-title">Your review analysis history</h3>
+          <div style={{height: "200px"}}>
+            <Bar data={historyBarData} options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: "top" } },
+              scales: { x: { stacked: true }, y: { stacked: true, max: 100 } }
+            }} />
           </div>
         </div>
       )}
-
-      <div className="analysis-card" style={{marginTop: "1rem"}}>
-        <h3 className="analysis-card-title">Sample analysis — iPhone 15 reviews</h3>
-        <div style={{height: "220px"}}>
-          <Bar
-            data={{
-              labels: ["Camera", "Battery", "Display", "Performance", "Value", "Design"],
-              datasets: [{
-                label: "Positive sentiment %",
-                data: [88, 45, 82, 79, 71, 85],
-                backgroundColor: ["#16a34a","#dc2626","#16a34a","#16a34a","#2563eb","#16a34a"],
-                borderRadius: 6,
-              }]
-            }}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { display: false } },
-              scales: { y: { max: 100, beginAtZero: true } }
-            }}
-          />
-        </div>
-        <p style={{fontSize:"12px",color:"var(--text-secondary)",marginTop:"8px"}}>
-          Based on analysis of 500+ real Amazon reviews for iPhone 15
-        </p>
-      </div>
     </main>
   );
 }
