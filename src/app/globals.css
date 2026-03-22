@@ -1638,3 +1638,130 @@ body {
   .about-flow { flex-direction: column; }
   .about-flow-arrow { transform: rotate(90deg); }
 }
+/* Sentiment demo */
+.demo-section {
+  margin-bottom: 3rem;
+  text-align: center;
+}
+
+.demo-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.demo-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.demo-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  background: var(--bg);
+  color: var(--text-primary);
+  resize: vertical;
+  outline: none;
+  margin-bottom: 12px;
+}
+
+.demo-textarea:focus { border-color: var(--accent); }
+
+.demo-btn {
+  width: 100%;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 99px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Syne', sans-serif;
+}
+
+.demo-btn:hover { background: #1230d6; }
+.demo-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.demo-result {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.demo-result-score {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.demo-sentiment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 99px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.demo-positive { background: var(--green-light); color: #166534; }
+.demo-negative { background: var(--red-light); color: #991b1b; }
+.demo-neutral { background: var(--amber-light); color: #92400e; }
+
+.demo-score-val {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.demo-breakdown { display: flex; flex-direction: column; gap: 10px; }
+
+.demo-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.demo-bar-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.demo-bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--bg);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.demo-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.5s ease;
+}
+
+.demo-bar-green { background: #16a34a; }
+.demo-bar-amber { background: #d97706; }
+.demo-bar-red { background: #dc2626; }
+
+.demo-bar-pct {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  width: 36px;
+  text-align: right;
+}

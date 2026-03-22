@@ -1,4 +1,26 @@
+"use client";
+import { useState } from "react";
+
 export default function About() {
+  const [demoText, setDemoText] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  async function analyzeSentiment() {
+    if (!demoText.trim()) return;
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `https://smart-consumer-backend.onrender.com/analyze-sentiment?text=${encodeURIComponent(demoText)}`
+      );
+      const data = await res.json();
+      setResult(data);
+    } catch (e) {
+      setResult({ error: "Could not analyze. Try again!" });
+    }
+    setLoading(false);
+  }
+
   return (
     <main className="main-container">
 
@@ -6,146 +28,9 @@ export default function About() {
         <div className="hero-badge">About Us</div>
         <h1 className="hero-title">Smart Consumer Intelligence</h1>
         <p className="hero-subtitle">
-          We help shoppers make smarter decisions using AI — no more fake
-          reviews, price traps, or misleading product images.
+          AI-powered product analysis platform that helps you shop smarter
+          with real data from Amazon and Flipkart.
         </p>
-      </div>
-
-      <div className="about-stats">
-        <div className="about-stat">
-          <div className="about-stat-number">10+</div>
-          <div className="about-stat-label">Products per search</div>
-        </div>
-        <div className="about-stat">
-          <div className="about-stat-number">2</div>
-          <div className="about-stat-label">Platforms compared</div>
-        </div>
-        <div className="about-stat">
-          <div className="about-stat-number">AI</div>
-          <div className="about-stat-label">Powered analysis</div>
-        </div>
-        <div className="about-stat">
-          <div className="about-stat-number">Free</div>
-          <div className="about-stat-label">Always free</div>
-        </div>
-      </div>
-
-      <div className="about-section">
-        <h2 className="about-section-title">How Sentiment Analysis Works</h2>
-        <div className="about-flow">
-          <div className="about-flow-step">
-            <div className="about-flow-icon">📝</div>
-            <div className="about-flow-title">Collect Reviews</div>
-            <div className="about-flow-desc">We fetch real customer reviews from Amazon India using the RapidAPI.</div>
-          </div>
-          <div className="about-flow-arrow">→</div>
-          <div className="about-flow-step">
-            <div className="about-flow-icon">🧠</div>
-            <div className="about-flow-title">NLP Analysis</div>
-            <div className="about-flow-desc">Our AI uses TextBlob NLP to analyze the sentiment polarity of each review.</div>
-          </div>
-          <div className="about-flow-arrow">→</div>
-          <div className="about-flow-step">
-            <div className="about-flow-icon">📊</div>
-            <div className="about-flow-title">Score Calculation</div>
-            <div className="about-flow-desc">Reviews are classified as positive, neutral, or negative and scored 0-100%.</div>
-          </div>
-          <div className="about-flow-arrow">→</div>
-          <div className="about-flow-step">
-            <div className="about-flow-icon">🔍</div>
-            <div className="about-flow-title">Keyword Extraction</div>
-            <div className="about-flow-desc">Most frequent words from positive and negative reviews are extracted.</div>
-          </div>
-          <div className="about-flow-arrow">→</div>
-          <div className="about-flow-step">
-            <div className="about-flow-icon">✅</div>
-            <div className="about-flow-title">Final Score</div>
-            <div className="about-flow-desc">A final sentiment score and trust score is shown on each product card.</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="about-grid">
-        <div className="about-card">
-          <div className="about-icon">💬</div>
-          <h3 className="about-card-title">Sentiment Analysis</h3>
-          <p className="about-card-text">
-            Our AI reads real customer reviews using Natural Language Processing (NLP).
-            It classifies each review as positive, neutral, or negative and gives
-            an overall sentiment score from 0 to 100%.
-          </p>
-        </div>
-
-        <div className="about-card">
-          <div className="about-icon">🔍</div>
-          <h3 className="about-card-title">Fake Review Detection</h3>
-          <p className="about-card-text">
-            We detect suspicious patterns like duplicate reviews, burst posting,
-            and repetitive text. A trust score shows how genuine the reviews are.
-            Lower trust score means more fake reviews detected.
-          </p>
-        </div>
-
-        <div className="about-card">
-          <div className="about-icon">📈</div>
-          <h3 className="about-card-title">Price Trend Analysis</h3>
-          <p className="about-card-text">
-            We track product prices over time and show a price history chart.
-            The system predicts whether the price is likely to drop, rise,
-            or remain stable — so you always buy at the right time.
-          </p>
-        </div>
-
-        <div className="about-card">
-          <div className="about-icon">🖼️</div>
-          <h3 className="about-card-title">Image Authenticity</h3>
-          <p className="about-card-text">
-            Our system checks if product images are original, edited, or stock
-            photos. An authenticity score shows how trustworthy the product
-            images are — helping you avoid misleading listings.
-          </p>
-        </div>
-
-        <div className="about-card">
-          <div className="about-icon">🏆</div>
-          <h3 className="about-card-title">Smart Ranking</h3>
-          <p className="about-card-text">
-            Products are ranked using a weighted combination of sentiment score,
-            trust score, image authenticity, and price. The best overall product
-            is highlighted as the top recommendation.
-          </p>
-        </div>
-
-        <div className="about-card">
-          <div className="about-icon">⚡</div>
-          <h3 className="about-card-title">Real-Time Data</h3>
-          <p className="about-card-text">
-            All product data, prices, and reviews are fetched in real-time from
-            Amazon India and Flipkart via RapidAPI. You always see the most
-            up-to-date information when you search.
-          </p>
-        </div>
-      </div>
-
-      <div className="about-tech">
-        <h2 className="about-section-title">Tech Stack</h2>
-        <div className="tech-grid">
-          {[
-            { name: "Next.js", desc: "Frontend framework", color: "#0f0e0c" },
-            { name: "FastAPI", desc: "Python backend", color: "#059669" },
-            { name: "TextBlob", desc: "NLP & sentiment", color: "#2563eb" },
-            { name: "Supabase", desc: "Auth & database", color: "#3ecf8e" },
-            { name: "RapidAPI", desc: "Product data", color: "#0f172a" },
-            { name: "Vercel", desc: "Frontend hosting", color: "#000000" },
-            { name: "Render", desc: "Backend hosting", color: "#46e3b7" },
-            { name: "GitHub", desc: "Version control", color: "#1f2328" },
-          ].map((tech) => (
-            <div key={tech.name} className="tech-card">
-              <div className="tech-name">{tech.name}</div>
-              <div className="tech-desc">{tech.desc}</div>
-            </div>
-          ))}
-        </div>
       </div>
 
       <div className="about-mission">
@@ -155,6 +40,102 @@ export default function About() {
           platform to give every shopper the same data-driven insights that
           experts use — completely free.
         </p>
+      </div>
+
+      <div className="about-grid">
+        <div className="about-card">
+          <div className="about-icon">💬</div>
+          <h3 className="about-card-title">Sentiment Analysis</h3>
+          <p className="about-card-text">
+            AI reads real reviews and scores them positive, neutral, or negative
+            using Natural Language Processing.
+          </p>
+        </div>
+        <div className="about-card">
+          <div className="about-icon">🔍</div>
+          <h3 className="about-card-title">Fake Review Detection</h3>
+          <p className="about-card-text">
+            Detects duplicate reviews, burst posting, and suspicious patterns
+            to give you a real trust score.
+          </p>
+        </div>
+        <div className="about-card">
+          <div className="about-icon">📈</div>
+          <h3 className="about-card-title">Price Trend Analysis</h3>
+          <p className="about-card-text">
+            Tracks price history and predicts whether prices will drop,
+            rise, or stay stable.
+          </p>
+        </div>
+        <div className="about-card">
+          <div className="about-icon">🖼️</div>
+          <h3 className="about-card-title">Image Authenticity</h3>
+          <p className="about-card-text">
+            Checks if product images are original, edited, or stock photos
+            so you know what you're buying.
+          </p>
+        </div>
+      </div>
+
+      <div className="demo-section">
+        <h2 className="about-section-title">Try Sentiment Analysis Live</h2>
+        <p className="demo-subtitle">Type any product review below and see how our AI analyzes it!</p>
+
+        <div className="demo-box">
+          <textarea
+            className="demo-textarea"
+            placeholder="e.g. This phone has amazing camera quality but the battery drains too fast..."
+            value={demoText}
+            onChange={(e) => setDemoText(e.target.value)}
+            rows={4}
+          />
+          <button className="demo-btn" onClick={analyzeSentiment} disabled={loading}>
+            {loading ? "Analyzing..." : "Analyze Sentiment"}
+          </button>
+
+          {result && !result.error && (
+            <div className="demo-result">
+              <div className="demo-result-score">
+                <div className={`demo-sentiment-badge ${
+                  result.sentiment === "Positive" ? "demo-positive" :
+                  result.sentiment === "Negative" ? "demo-negative" : "demo-neutral"
+                }`}>
+                  {result.sentiment === "Positive" ? "😊" :
+                   result.sentiment === "Negative" ? "😞" : "😐"}
+                  {result.sentiment}
+                </div>
+                <div className="demo-score-val">Score: {result.score}%</div>
+              </div>
+              <div className="demo-breakdown">
+                <div className="demo-bar-wrap">
+                  <div className="demo-bar-label">Positive</div>
+                  <div className="demo-bar-track">
+                    <div className="demo-bar-fill demo-bar-green" style={{width: `${result.positive}%`}} />
+                  </div>
+                  <div className="demo-bar-pct">{result.positive}%</div>
+                </div>
+                <div className="demo-bar-wrap">
+                  <div className="demo-bar-label">Neutral</div>
+                  <div className="demo-bar-track">
+                    <div className="demo-bar-fill demo-bar-amber" style={{width: `${result.neutral}%`}} />
+                  </div>
+                  <div className="demo-bar-pct">{result.neutral}%</div>
+                </div>
+                <div className="demo-bar-wrap">
+                  <div className="demo-bar-label">Negative</div>
+                  <div className="demo-bar-track">
+                    <div className="demo-bar-fill demo-bar-red" style={{width: `${result.negative}%`}} />
+                  </div>
+                  <div className="demo-bar-pct">{result.negative}%</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {result?.error && (
+            <p className="auth-error">{result.error}</p>
+          )}
+        </div>
       </div>
 
     </main>

@@ -229,5 +229,36 @@ async def search(query: str = ""):
     results.sort(key=lambda x: (x["sentiment"] + x["trustScore"] + x["imageAuth"]) / 3, reverse=True)
     for i, r in enumerate(results):
         r["rank"] = i + 1
+@app.get("/analyze-sentiment")
+async def analyze_sentiment_endpoint(text: str = ""):
+    if not text.strip():
+        return {"error": "No text provided"}
+    
+    sentences = [s.strip() for s in text.replace(".", ".|||").replace("!", ".|||").replace("?", ".|||").split("|||") if s.strip()]
+    if not sentences:
+        sentences = [text]
+    
+    scores = []
+    for s in sentences:
+        blob = TextBlob(s)
+        scores.append(blob.sentiment.polarity)
+    
+    avg = sum(scores) / len(scores)
+    score = round((avg + 1) / 2 * 100)
+    
+    positive = sum(1 for s in scores if s > 0.1)
+    negative = sum(1 for s in scores if s < -0.1)
+    neutral = len(scores) - positive - negative
+    total = len(scores)
+    
+    sentiment = "Positive" if avg > 0.1 else "Negative" if avg < -0.1 else "Neutral"
+    
+    return {
+        "sentiment": sentiment,
+        "score": score,
+        "positive": round((positive / total) * 100),
+        "neutral": round((neutral / total) * 100),
+        "negative": round((negative / total) * 100),
+    }
 
     return {"query": query, "total": len(results), "products": results}
