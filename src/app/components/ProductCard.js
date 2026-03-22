@@ -4,6 +4,7 @@ import ScoreBar from "./ScoreBar";
 import { TrendingDown, TrendingUp, Minus, ExternalLink, Bookmark, Bell } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useRouter } from "next/navigation";
+import { Share2 } from "lucide-react";
 
 const RANK_LABELS = { 1: "Best Choice", 2: "2nd Choice", 3: "3rd Choice" };
 const RANK_CLASSES = { 1: "badge-rank1", 2: "badge-rank2", 3: "badge-rank3" };
@@ -76,6 +77,16 @@ async function handleSave() {
       alert(`✅ Alert set! We'll notify you when ${product.name} drops to ₹${alertPrice}`);
     }
   }
+function handleShare() {
+  const text = `Check out ${product.name} at ${product.price} on ${product.platform}!`;
+  const url = product.url || window.location.href;
+  if (navigator.share) {
+    navigator.share({ title: product.name, text, url });
+  } else {
+    navigator.clipboard.writeText(`${text} ${url}`);
+    alert("Link copied to clipboard!");
+  }
+}
 
   return (
     <div className={`product-card ${isBest ? "product-card--best" : ""} ${isComparing ? "product-card--comparing" : ""}`}>
@@ -164,6 +175,13 @@ async function handleSave() {
           onClick={() => setShowAlert(!showAlert)}
           title="Set price alert"
         >
+<button
+  className="save-btn"
+  onClick={handleShare}
+  title="Share product"
+>
+  <Share2 size={13} />
+</button>
           <Bell size={13} />
         </button>
       </div>
