@@ -1494,3 +1494,27 @@ body {
   background: var(--amber-light);
   color: #92400e;
 }
+/* Sentiment breakdown bar */
+.sentiment-breakdown { margin-bottom: 10px; }
+
+.breakdown-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.breakdown-positive { background: #16a34a; }
+.breakdown-neutral { background: #d97706; }
+.breakdown-negative { background: #dc2626; }
+
+.breakdown-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.breakdown-label-pos { color: #16a34a; font-weight: 500; }
+.breakdown-label-neu { color: #d97706; font-weight: 500; }
+.breakdown-label-neg { color: #dc2626; font-weight: 500; }

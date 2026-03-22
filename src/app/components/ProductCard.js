@@ -122,10 +122,37 @@ function handleShare() {
         )}
       </div>
       <div className="scores">
-        <ScoreBar label="Sentiment" value={product.sentiment} />
-        <ScoreBar label="Trust score" value={product.trustScore} />
-        <ScoreBar label="Image auth." value={product.imageAuth} />
-      </div>
+  <ScoreBar label="Sentiment" value={product.sentiment} />
+  <ScoreBar label="Trust score" value={product.trustScore} />
+  <ScoreBar label="Image auth." value={product.imageAuth} />
+</div>
+
+{product.sentimentBreakdown && (
+  <div className="sentiment-breakdown">
+    <div className="breakdown-bar">
+      <div
+        className="breakdown-positive"
+        style={{width: `${product.sentimentBreakdown.positive}%`}}
+        title={`Positive: ${product.sentimentBreakdown.positive}%`}
+      />
+      <div
+        className="breakdown-neutral"
+        style={{width: `${product.sentimentBreakdown.neutral}%`}}
+        title={`Neutral: ${product.sentimentBreakdown.neutral}%`}
+      />
+      <div
+        className="breakdown-negative"
+        style={{width: `${product.sentimentBreakdown.negative}%`}}
+        title={`Negative: ${product.sentimentBreakdown.negative}%`}
+      />
+    </div>
+    <div className="breakdown-labels">
+      <span className="breakdown-label-pos">😊 {product.sentimentBreakdown.positive}%</span>
+      <span className="breakdown-label-neu">😐 {product.sentimentBreakdown.neutral}%</span>
+      <span className="breakdown-label-neg">😞 {product.sentimentBreakdown.negative}%</span>
+    </div>
+  </div>
+)}
       <div className="card-tags">
         {product.positives.map((t) => (
           <span key={t} className="tag tag-ok">{t}</span>
