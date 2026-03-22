@@ -3,6 +3,7 @@ import { useState } from "react";
 import ScoreBar from "./ScoreBar";
 import { TrendingDown, TrendingUp, Minus, ExternalLink, Bookmark, Bell } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { useRouter } from "next/navigation";
 
 const RANK_LABELS = { 1: "Best Choice", 2: "2nd Choice", 3: "3rd Choice" };
 const RANK_CLASSES = { 1: "badge-rank1", 2: "badge-rank2", 3: "badge-rank3" };
@@ -17,6 +18,12 @@ function PriceTrendBadge({ trend }) {
 
 export default function ProductCard({ product, onCompare, isComparing, isBestDeal }) {
   const isBest = product.rank === 1;
+const router = useRouter();
+
+function handleViewDetail() {
+  const data = encodeURIComponent(JSON.stringify(product));
+  router.push(`/product?data=${data}`);
+}
   const [saved, setSaved] = useState(false);
 const [alertSet, setAlertSet] = useState(false);
 const [alertPrice, setAlertPrice] = useState("");
@@ -93,7 +100,9 @@ async function handleSave() {
             {product.platform}
           </span>
         </div>
-        <h2 className="product-name">{product.name}</h2>
+       <h2 className="product-name" onClick={handleViewDetail} style={{cursor:"pointer"}}>
+  {product.name}
+</h2>
         <div className="product-meta">
           <span className="product-price">{product.price}</span>
           <PriceTrendBadge trend={product.priceTrend} />
