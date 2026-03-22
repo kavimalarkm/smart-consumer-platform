@@ -18,6 +18,9 @@ function PriceTrendBadge({ trend }) {
 export default function ProductCard({ product, onCompare, isComparing, isBestDeal }) {
   const isBest = product.rank === 1;
   const [saved, setSaved] = useState(false);
+const [alertSet, setAlertSet] = useState(false);
+const [alertPrice, setAlertPrice] = useState("");
+const [showAlert, setShowAlert] = useState(false);
 
 async function handleSave() {
   if (saved) {
