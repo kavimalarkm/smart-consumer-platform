@@ -1,13 +1,9 @@
-from fastapi import FastAPI
-from fastapi import FastAPI
-# v2 fixed
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
 from textblob import TextBlob
-import httpx
-import html
-from collections import Counter
-import re
+from PIL import Image
+import requests
+import io
 
 app = FastAPI()
 
@@ -17,10 +13,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-RAPIDAPI_KEY = "3cb5bef83emshb75657b8afe33b3p139e02jsn5a1d89e95309"
-AMAZON_HOST = "real-time-amazon-data.p.rapidapi.com"
-FLIPKART_HOST = "real-time-flipkart.p.rapidapi.com"
 
 def analyze_sentiment(reviews):
     if not reviews:
@@ -39,215 +31,152 @@ def detect_fake_reviews(reviews):
     total = len(reviews)
     return round((unique / total) * 100)
 
-def extract_keywords(reviews):
-    positive_reviews = []
-    negative_reviews = []
-    for review in reviews:
-        blob = TextBlob(review)
-        if blob.sentiment.polarity > 0.1:
-            positive_reviews.append(review)
-        elif blob.sentiment.polarity < -0.1:
-            negative_reviews.append(review)
-    stop_words = {"the","a","an","is","it","this","that","was","are","for","of","and","to","in","on","with","have","has","i","my","me","we","they","its","very","so","but","not","no","be","been","as","at","by","from","or"}
-    def get_keywords(text_list):
-        words = []
-        for text in text_list:
-            tokens = re.findall(r'\b[a-z]{4,}\b', text.lower())
-            words.extend([w for w in tokens if w not in stop_words])
-        counter = Counter(words)
-        return [word for word, count in counter.most_common(5)]
-    pos_keywords = get_keywords(positive_reviews)
-    neg_keywords = get_keywords(negative_reviews)
-    positives = [k.capitalize() for k in pos_keywords[:3]] if pos_keywords else ["Good quality"]
-    complaints = [k.capitalize() for k in neg_keywords[:3]] if neg_keywords else []
-    return positives, complaints
+def get_complaints(reviews):
+    complaints = []
+    positives = []
+    for r in reviews:
+        blob = TextBlob(r)
+        if blob.sentiment.polarity < 0:
+            complaints.append(r[:30])
+        else:
+            positives.append(r[:30])
+    return complaints[:2], positives[:2]
 
-def get_sentiment_breakdown(reviews):
-    if not reviews:
-        return {"positive": 0, "neutral": 0, "negative": 0}
-    positive = sum(1 for r in reviews if TextBlob(r).sentiment.polarity > 0.1)
-    negative = sum(1 for r in reviews if TextBlob(r).sentiment.polarity < -0.1)
-    neutral = len(reviews) - positive - negative
-    total = len(reviews)
-    return {
-        "positive": round((positive / total) * 100),
-        "neutral": round((neutral / total) * 100),
-        "negative": round((negative / total) * 100),
-    }
+def analyze_image(img):
+    score = 100
+    flags = []
+
+    width, height = img.size
+    if width > 3000 or height > 3000:
+        score -= 20
+        flags.append("Unusually large image")
+    if width == height:
+        score -= 10
+        flags.append("Perfect square (stock photo pattern)")
+
+    if img.mode == "RGB":
+        r, g, b = img.split()
+        import statistics
+        r_std = statistics.stdev(list(r.getdata())[:1000])
+        if r_std < 10:
+            score -= 25
+            flags.append("Very low color variation")
+
+    exif_data = {}
+    try:
+        exif_data = img._getexif() or {}
+    except:
+        pass
+
+    if not exif_data:
+        score -= 15
+        flags.append("No camera metadata found")
+    else:
+        score += 10
+
+    score = max(0, min(100, score))
+    return score, flags
+
+PRODUCTS_DATA = {
+    "smartphone": [
+        {
+            "id": 1, "rank": 1,
+            "name": "Redmi Note 13 Pro",
+            "price": "₹18,999",
+            "priceTrend": "dropping",
+            "imageAuth": 90,
+            "reviews": [
+                "Amazing camera quality, love this phone!",
+                "Great display and performance",
+                "Battery could be better but camera is excellent",
+                "Slow charging is annoying but overall great",
+                "Best phone under 20000 rupees",
+            ]
+        },
+        {
+            "id": 2, "rank": 2,
+            "name": "Samsung Galaxy A35",
+            "price": "₹19,499",
+            "priceTrend": "stable",
+            "imageAuth": 78,
+            "reviews": [
+                "Good build quality",
+                "Good build quality",
+                "Battery drains too fast",
+                "Not worth the price",
+                "Good build quality",
+            ]
+        },
+        {
+            "id": 3, "rank": 3,
+            "name": "Poco X6 Neo",
+            "price": "₹16,999",
+            "priceTrend": "rising",
+            "imageAuth": 45,
+            "reviews": [
+                "Terrible experience, phone heats up",
+                "Fake product images",
+                "Not good at all",
+                "Heating issues every day",
+                "Very disappointing",
+            ]
+        },
+    ]
+}
 
 @app.get("/")
 def root():
     return {"message": "Smart Consumer Intelligence API is running!"}
 
-@app.get("/image-proxy")
-async def image_proxy(url: str):
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        }, follow_redirects=True)
-        return Response(
-            content=response.content,
-            media_type=response.headers.get("content-type", "image/jpeg")
-        )
-
 @app.get("/search")
-async def search(query: str = ""):
-    if not query.strip():
-        return {"query": "", "total": 0, "products": []}
+def search(query: str = ""):
+    query_lower = query.lower()
+    matched_key = "smartphone"
+    for key in PRODUCTS_DATA:
+        if key in query_lower:
+            matched_key = key
+            break
 
-    headers_amazon = {
-        "x-rapidapi-key": RAPIDAPI_KEY,
-        "x-rapidapi-host": AMAZON_HOST,
-    }
-    headers_flipkart = {
-        "x-rapidapi-key": RAPIDAPI_KEY,
-        "x-rapidapi-host": FLIPKART_HOST,
-    }
-
-    amazon_products = []
-    flipkart_products = []
-
-    try:
-        async with httpx.AsyncClient() as client:
-            amazon_res = await client.get(
-                "https://real-time-amazon-data.p.rapidapi.com/search",
-                headers=headers_amazon,
-                params={"query": query, "page": "1", "country": "IN", "sort_by": "RELEVANCE"}
-            )
-            amazon_data = amazon_res.json()
-            amazon_products = amazon_data.get("data", {}).get("products", [])[:5]
-    except:
-        amazon_products = []
-
-    try:
-        async with httpx.AsyncClient() as client:
-            flipkart_res = await client.get(
-                "https://real-time-flipkart.p.rapidapi.com/search.php",
-                headers=headers_flipkart,
-                params={"query": query, "page": "1", "sort": "relevance"}
-            )
-            flipkart_data = flipkart_res.json()
-            if isinstance(flipkart_data, list):
-                flipkart_products = flipkart_data[:5]
-            elif isinstance(flipkart_data, dict):
-                flipkart_products = flipkart_data.get("products", flipkart_data.get("data", []))[:5]
-    except:
-        flipkart_products = []
-
+    raw_products = PRODUCTS_DATA[matched_key]
     results = []
-
-    for i, p in enumerate(amazon_products):
-        asin = p.get("asin", "")
-        title = html.unescape(p.get("product_title", "Unknown"))
-        price = p.get("product_price", "N/A")
-        rating = p.get("product_star_rating", "0")
-        reviews_count = p.get("product_num_ratings", 0)
-        image = p.get("product_photo", "")
-
-        reviews = []
-        if asin:
-            try:
-                async with httpx.AsyncClient(timeout=10) as rev_client:
-                    rev_res = await rev_client.get(
-                        "https://real-time-amazon-data.p.rapidapi.com/product-reviews",
-                        headers=headers_amazon,
-                        params={"asin": asin, "country": "IN", "page": "1"}
-                    )
-                    rev_data = rev_res.json()
-                    raw_reviews = rev_data.get("data", {}).get("reviews", [])
-                    reviews = [html.unescape(r.get("review_comment", ""))
-                              for r in raw_reviews[:15] if r.get("review_comment")]
-            except:
-                pass
-
-        if not reviews:
-            reviews = ["Good product", "Decent quality", "Not bad", "Could be better", "Average product"]
-
-        sentiment = analyze_sentiment(reviews)
-        trust = detect_fake_reviews(reviews)
-        positives, complaints = extract_keywords(reviews)
-        breakdown = get_sentiment_breakdown(reviews)
-
+    for p in raw_products:
+        sentiment = analyze_sentiment(p["reviews"])
+        trust = detect_fake_reviews(p["reviews"])
+        complaints, positives = get_complaints(p["reviews"])
         results.append({
-            "id": i + 1,
-            "rank": i + 1,
-            "name": title,
-            "price": price,
-            "image": image,
-            "url": f"https://www.amazon.in/dp/{asin}" if asin else "",
-            "rating": rating,
-            "reviewCount": reviews_count,
-            "platform": "Amazon",
-            "priceTrend": "stable",
+            "id": p["id"],
+            "rank": p["rank"],
+            "name": p["name"],
+            "price": p["price"],
+            "priceTrend": p["priceTrend"],
             "sentiment": sentiment,
             "trustScore": trust,
-            "imageAuth": 80 - (i * 5),
+            "imageAuth": p["imageAuth"],
             "complaints": complaints,
             "positives": positives,
-            "sentimentBreakdown": breakdown,
         })
-
-    for i, p in enumerate(flipkart_products):
-        title = p.get("title", "Unknown")
-        price = f"₹{p.get('price', 'N/A')}"
-        rating = str(p.get("rating", {}).get("average", "0"))
-        reviews_count = p.get("rating", {}).get("count", 0)
-        image = p.get("image", "")
-        pid = p.get("product_id", "")
-
-        reviews = ["Good product", "Decent quality", "Not bad", "Could be better", "Average product"]
-        sentiment = analyze_sentiment(reviews)
-        trust = detect_fake_reviews(reviews)
-        positives, complaints = extract_keywords(reviews)
-        breakdown = get_sentiment_breakdown(reviews)
-
-        results.append({
-            "id": len(amazon_products) + i + 1,
-            "rank": len(amazon_products) + i + 1,
-            "name": title,
-            "price": price,
-            "image": image,
-            "url": f"https://www.flipkart.com/product/p/itme?pid={pid}" if pid else "",
-            "rating": rating,
-            "reviewCount": reviews_count,
-            "platform": "Flipkart",
-            "priceTrend": "stable",
-            "sentiment": sentiment,
-            "trustScore": trust,
-            "imageAuth": 75 - (i * 5),
-            "complaints": complaints,
-            "positives": positives,
-            "sentimentBreakdown": breakdown,
-        })
-
-    results.sort(key=lambda x: (x["sentiment"] + x["trustScore"] + x["imageAuth"]) / 3, reverse=True)
-    for i, r in enumerate(results):
-        r["rank"] = i + 1
 
     return {"query": query, "total": len(results), "products": results}
 
-@app.get("/analyze-sentiment")
-async def analyze_sentiment_endpoint(text: str = ""):
-    if not text.strip():
-        return {"error": "No text provided"}
-    sentences = [s.strip() for s in text.replace(".", ".|||").replace("!", ".|||").replace("?", ".|||").split("|||") if s.strip()]
-    if not sentences:
-        sentences = [text]
-    scores = []
-    for s in sentences:
-        blob = TextBlob(s)
-        scores.append(blob.sentiment.polarity)
-    avg = sum(scores) / len(scores)
-    score = round((avg + 1) / 2 * 100)
-    positive = sum(1 for s in scores if s > 0.1)
-    negative = sum(1 for s in scores if s < -0.1)
-    neutral = len(scores) - positive - negative
-    total = len(scores)
-    sentiment = "Positive" if avg > 0.1 else "Negative" if avg < -0.1 else "Neutral"
-    return {
-        "sentiment": sentiment,
-        "score": score,
-        "positive": round((positive / total) * 100),
-        "neutral": round((neutral / total) * 100),
-        "negative": round((negative / total) * 100),
-    }
+@app.post("/analyze-image")
+async def analyze_image_endpoint(file: UploadFile = File(None), url: str = None):
+    try:
+        if file and file.filename:
+            contents = await file.read()
+            img = Image.open(io.BytesIO(contents))
+        elif url:
+            response = requests.get(url, timeout=10)
+            img = Image.open(io.BytesIO(response.content))
+        else:
+            return {"error": "Please provide an image file or URL"}
+
+        score, flags = analyze_image(img)
+        verdict = "Likely authentic" if score >= 75 else "Possibly edited" if score >= 50 else "Likely fake or stock photo"
+
+        return {
+            "score": score,
+            "verdict": verdict,
+            "flags": flags,
+        }
+    except Exception as e:
+        return {"error": str(e), "score": 0, "verdict": "Could not analyze", "flags": []}
