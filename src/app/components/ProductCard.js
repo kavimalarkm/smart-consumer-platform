@@ -14,16 +14,14 @@ function PriceTrendBadge({ trend }) {
   return <span className="trend trend-stable"><Minus size={13} /> Stable price</span>;
 }
 
-export default function ProductCard({ product, onCompare, isComparing, isBestDeal }) {
+export default function ProductCard({ product, onCompare, isComparing }) {
   const isBest = product.rank === 1;
   const [imgError, setImgError] = useState(false);
-
   const rankLabel = RANK_LABELS[product.rank] || `${product.rank}th Choice`;
   const rankClass = RANK_CLASSES[product.rank] || "badge-rank3";
 
   return (
     <div className={`product-card ${isBest ? "product-card--best" : ""} ${isComparing ? "product-card--comparing" : ""}`}>
-
       {product.image && !imgError && (
         <div className="card-image-wrap">
           <img
@@ -34,12 +32,9 @@ export default function ProductCard({ product, onCompare, isComparing, isBestDea
           />
         </div>
       )}
-
       <div className="card-top">
         <div className="card-badges">
-          <span className={`rank-badge ${rankClass}`}>
-            {rankLabel}
-          </span>
+          <span className={`rank-badge ${rankClass}`}>{rankLabel}</span>
           {product.platform && (
             <span className={`platform-badge ${product.platform === "Amazon" ? "platform-amazon" : "platform-flipkart"}`}>
               {product.platform}
@@ -61,13 +56,11 @@ export default function ProductCard({ product, onCompare, isComparing, isBestDea
           </div>
         )}
       </div>
-
       <div className="scores">
         <ScoreBar label="Sentiment" value={product.sentiment} />
         <ScoreBar label="Trust score" value={product.trustScore} />
         <ScoreBar label="Image auth." value={product.imageAuth} />
       </div>
-
       <div className="card-tags">
         {product.positives && product.positives.map((t) => (
           <span key={t} className="tag tag-ok">{t}</span>
@@ -76,28 +69,16 @@ export default function ProductCard({ product, onCompare, isComparing, isBestDea
           <span key={t} className="tag tag-warn">{t}</span>
         ))}
       </div>
-
       <div className="card-actions">
         {product.url && (
-          
-            href={product.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="view-btn"
-          >
-            View on {product.platform} ↗
-          </a>
+          <a href={product.url} target="_blank" rel="noopener noreferrer" className="view-btn">View on {product.platform} ↗</a>
         )}
         {onCompare && (
-          <button
-            className={`compare-btn ${isComparing ? "compare-btn--active" : ""}`}
-            onClick={() => onCompare(product)}
-          >
+          <button className={`compare-btn ${isComparing ? "compare-btn--active" : ""}`} onClick={() => onCompare(product)}>
             {isComparing ? "✓ Added" : "+ Compare"}
           </button>
         )}
       </div>
-
     </div>
   );
 }
