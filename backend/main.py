@@ -18,7 +18,7 @@ app.add_middleware(
 
 RAPIDAPI_KEY = "3cb5bef83emshb75657b8afe33b3p139e02jsn5a1d89e95309"
 AMAZON_HOST = "real-time-amazon-data.p.rapidapi.com"
-FLIPKART_HOST = "real-time-flipkart.p.rapidapi.com"
+FLIPKART_HOST = "real-time-flipkart-data2.p.rapidapi.com"
 
 def analyze_sentiment(reviews):
     if not reviews:
@@ -120,15 +120,15 @@ async def search(query: str = ""):
     try:
         async with httpx.AsyncClient() as client:
             flipkart_res = await client.get(
-                "https://real-time-flipkart.p.rapidapi.com/search.php",
+                "https://real-time-flipkart-data2.p.rapidapi.com/product-search",
                 headers=headers_flipkart,
-                params={"query": query, "page": "1", "sort": "relevance"}
+                params={"q": query, "page": "1", "sort_by": "RELEVANCE"}
             )
             flipkart_data = flipkart_res.json()
             if isinstance(flipkart_data, list):
                 flipkart_products = flipkart_data[:5]
             elif isinstance(flipkart_data, dict):
-                flipkart_products = flipkart_data.get("products", flipkart_data.get("data", []))[:5]
+                flipkart_products = flipkart_data.get("products", [])[:6]
     except:
         flipkart_products = []
 
