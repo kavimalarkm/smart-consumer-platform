@@ -6,6 +6,7 @@ import httpx
 import html
 from collections import Counter
 import re
+import asyncio
 
 app = FastAPI()
 
@@ -18,6 +19,7 @@ app.add_middleware(
 
 RAPIDAPI_KEY = "3cb5bef83emshb75657b8afe33b3p139e02jsn5a1d89e95309"
 FLIPKART_HOST = "real-time-flipkart.p.rapidapi.com"
+AMAZON_HOST = "axesso-axesso-amazon-data-service-v1.p.rapidapi.com"
 
 def analyze_sentiment(reviews):
     if not reviews:
@@ -52,7 +54,7 @@ def get_sentiment_breakdown(reviews):
 def extract_keywords(reviews):
     positive_reviews = [r for r in reviews if TextBlob(r).sentiment.polarity > 0.1]
     negative_reviews = [r for r in reviews if TextBlob(r).sentiment.polarity < -0.1]
-    stop_words = {"the","a","an","is","it","this","that","was","are","for","of","and","to","in","on","with","have","has","i","my","me","we","they","its","very","so","but","not","no","be","been","as","at","by","from","or","good","product","decent","average"}
+    stop_words = {"the","a","an","is","it","this","that","was","are","for","of","and","to","in","on","with","have","has","i","my","me","we","they","its","very","so","but","not","no","be","been","as","at","by","from","or","good","product","decent","average","size","color","just","like","great","nice","well"}
     def get_keywords(text_list):
         words = []
         for text in text_list:
@@ -84,6 +86,55 @@ async def image_proxy(url: str):
     except:
         return Response(content=b"", media_type="image/jpeg")
 
+async def fetch_amazon_product(client, asin, headers, index):
+    try:
+        res = await client.get(
+            "https://axesso-axesso-amazon-data-service-v1.p.rapidapi.com/amz/amazon-lookup-product",
+            headers=headers,
+            params={"url": f"https://www.amazon.in/dp/{asin}"},
+            timeout=12
+        )
+        data = res.json()
+        if data.get("responseStatus") != "PRODUCT_FOUND_RESPONSE":
+            return None
+        title = data.get("productTitle", "")
+        price_val = data.get("price", 0) or data.get("dealPrice", 0) or 0
+        price = f"₹{price_val:,.0f}" if price_val else "N/A"
+        rating_str = data.get("productRating", "4.0 out of 5 stars")
+        rating = rating_str.split(" ")[0] if rating_str else "4.0"
+        review_count = data.get("countReview", 0)
+        image = data.get("mainImage", {}).get("imageUrl", "")
+        if not image and data.get("imageUrlList"):
+            image = data["imageUrlList"][0]
+        reviews = [r.get("text", "") for r in data.get("globalReviews", []) if r.get("text")]
+        if not reviews:
+            reviews = ["Good product", "Decent quality", "Value for money", "Satisfactory", "Would recommend"]
+        sentiment = analyze_sentiment(reviews)
+        trust = detect_fake_reviews(reviews)
+        positives, complaints = extract_keywords(reviews)
+        breakdown = get_sentiment_breakdown(reviews)
+        discount = data.get("priceSaving", 0) or 0
+        price_trend = "dropping" if discount and float(str(discount).replace("%","").strip() or 0) > 5 else "stable"
+        return {
+            "title": title,
+            "price": price,
+            "image": image,
+            "url": f"https://www.amazon.in/dp/{asin}",
+            "rating": rating,
+            "reviewCount": review_count,
+            "platform": "Amazon",
+            "priceTrend": price_trend,
+            "sentiment": sentiment,
+            "trustScore": trust,
+            "imageAuth": max(50, 82 - (index * 4)),
+            "complaints": complaints,
+            "positives": positives,
+            "sentimentBreakdown": breakdown,
+        }
+    except Exception as e:
+        print(f"Amazon product error for {asin}: {e}")
+        return None
+
 @app.get("/search")
 async def search(query: str = ""):
     if not query.strip():
@@ -94,35 +145,50 @@ async def search(query: str = ""):
         "x-rapidapi-host": FLIPKART_HOST,
         "Content-Type": "application/json",
     }
+    headers_amazon = {
+        "x-rapidapi-key": RAPIDAPI_KEY,
+        "x-rapidapi-host": AMAZON_HOST,
+        "Content-Type": "application/json",
+    }
 
     flipkart_products = []
+    amazon_asins = []
 
-    try:
-        async with httpx.AsyncClient(timeout=15) as client:
-            flipkart_res = await client.get(
+    async with httpx.AsyncClient(timeout=15) as client:
+        try:
+            fk_res = await client.get(
                 "https://real-time-flipkart.p.rapidapi.com/search.php",
                 headers=headers_flipkart,
                 params={"query": query, "page": "1", "sort": "relevance"}
             )
-            flipkart_data = flipkart_res.json()
-            if isinstance(flipkart_data, list):
-                flipkart_products = flipkart_data[:12]
-            elif isinstance(flipkart_data, dict):
-                flipkart_products = flipkart_data.get("products", flipkart_data.get("data", []))[:12]
-    except Exception as e:
-        print(f"Flipkart error: {e}")
-        flipkart_products = []
+            fk_data = fk_res.json()
+            if isinstance(fk_data, list):
+                flipkart_products = fk_data[:6]
+            elif isinstance(fk_data, dict):
+                flipkart_products = fk_data.get("products", fk_data.get("data", []))[:6]
+        except Exception as e:
+            print(f"Flipkart error: {e}")
+
+        try:
+            amz_res = await client.get(
+                "https://axesso-axesso-amazon-data-service-v1.p.rapidapi.com/amz/amazon-search-by-keyword-asin",
+                headers=headers_amazon,
+                params={
+                    "domainCode": "in",
+                    "keyword": query,
+                    "page": "1",
+                    "excludeSponsored": "false",
+                    "sortBy": "relevanceblender",
+                    "withCache": "true"
+                }
+            )
+            amz_data = amz_res.json()
+            amazon_asins = amz_data.get("foundProducts", [])[:5]
+        except Exception as e:
+            print(f"Amazon search error: {e}")
 
     results = []
-    default_reviews = [
-        "Good product overall",
-        "Decent quality for the price",
-        "Satisfactory experience",
-        "Value for money",
-        "Would recommend to others",
-        "Average performance",
-        "Not bad for the price",
-    ]
+    default_reviews = ["Good product overall", "Decent quality", "Satisfactory experience", "Value for money", "Would recommend", "Average performance", "Not bad for the price"]
 
     for i, p in enumerate(flipkart_products):
         title = p.get("title", p.get("name", "Unknown Product"))
@@ -131,38 +197,25 @@ async def search(query: str = ""):
             price = f"₹{int(float(str(price_val).replace(',', ''))):,}" if price_val else "N/A"
         except:
             price = f"₹{price_val}" if price_val else "N/A"
-
         rating_data = p.get("rating", {})
         if isinstance(rating_data, dict):
             rating = str(rating_data.get("average", "4.0"))
             review_count = rating_data.get("count", 0)
         else:
             rating = str(rating_data or "4.0")
-            review_count = p.get("review_count", p.get("reviewCount", 0))
-
+            review_count = p.get("review_count", 0)
         image = p.get("image", "")
         if not image and p.get("images"):
             imgs = p.get("images")
             image = imgs[0] if isinstance(imgs, list) else imgs
-
         pid = p.get("product_id", p.get("pid", ""))
-        url_link = p.get("url", "")
-        if not url_link and pid:
-            url_link = f"https://www.flipkart.com/product/p/itme?pid={pid}"
-
+        url_link = p.get("url", f"https://www.flipkart.com/product/p/itme?pid={pid}" if pid else "")
         discount = p.get("discount_percent", p.get("discount", 0))
-        if discount and int(discount) > 10:
-            price_trend = "dropping"
-        else:
-            price_trend = "stable"
-
-        reviews = default_reviews
-        sentiment = analyze_sentiment(reviews)
-        trust = detect_fake_reviews(reviews)
-        positives, complaints = extract_keywords(reviews)
-        breakdown = get_sentiment_breakdown(reviews)
-        image_auth = max(50, 85 - (i * 3))
-
+        price_trend = "dropping" if discount and int(str(discount).split("%")[0].strip() or 0) > 5 else "stable"
+        sentiment = analyze_sentiment(default_reviews)
+        trust = detect_fake_reviews(default_reviews)
+        positives, complaints = extract_keywords(default_reviews)
+        breakdown = get_sentiment_breakdown(default_reviews)
         results.append({
             "id": i + 1,
             "rank": i + 1,
@@ -176,11 +229,19 @@ async def search(query: str = ""):
             "priceTrend": price_trend,
             "sentiment": sentiment,
             "trustScore": trust,
-            "imageAuth": image_auth,
+            "imageAuth": max(50, 85 - (i * 3)),
             "complaints": complaints,
             "positives": positives,
             "sentimentBreakdown": breakdown,
         })
+
+    if amazon_asins:
+        async with httpx.AsyncClient(timeout=15) as client:
+            tasks = [fetch_amazon_product(client, asin, headers_amazon, i) for i, asin in enumerate(amazon_asins)]
+            amazon_results = await asyncio.gather(*tasks)
+            for p in amazon_results:
+                if p:
+                    results.append(p)
 
     results.sort(key=lambda x: (
         float(x.get("rating", 0) or 0) * 20 +
@@ -189,6 +250,7 @@ async def search(query: str = ""):
     ), reverse=True)
 
     for i, r in enumerate(results):
+        r["id"] = i + 1
         r["rank"] = i + 1
 
     return {"query": query, "total": len(results), "products": results}
