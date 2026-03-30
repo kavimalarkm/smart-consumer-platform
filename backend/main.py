@@ -30,13 +30,31 @@ def analyze_sentiment(reviews):
         score = (blob.sentiment.polarity + 1) / 2 * 100
         total += score
     return round(total / len(reviews))
-
 def detect_fake_reviews(reviews):
     if not reviews:
         return 80
     unique = len(set(reviews))
     total = len(reviews)
     return round((unique / total) * 100)
+
+def calculate_trust_score(review_count, rating, sentiment):
+    rating = float(rating or 0)
+    review_count = int(review_count or 0)
+    if review_count > 100000:
+        review_trust = 95
+    elif review_count > 10000:
+        review_trust = 85
+    elif review_count > 1000:
+        review_trust = 75
+    elif review_count > 100:
+        review_trust = 65
+    elif review_count > 10:
+        review_trust = 50
+    else:
+        review_trust = 30
+    rating_trust = min(100, round((rating / 5) * 100))
+    sentiment_trust = sentiment
+    return round((review_trust * 0.5) + (rating_trust * 0.3) + (sentiment_trust * 0.2))
 
 def get_sentiment_breakdown(reviews):
     if not reviews:
