@@ -8,43 +8,45 @@ const RANK_CLASSES = { 1: "badge-rank1", 2: "badge-rank2", 3: "badge-rank3" };
 
 function PriceTrendBadge({ trend }) {
   if (trend === "dropping")
-    return <span className="trend trend-drop"><TrendingDown size={12} /> Dropping</span>;
+    return <span className="trend trend-drop"><TrendingDown size={12} /> Price dropping</span>;
   if (trend === "rising")
-    return <span className="trend trend-rise"><TrendingUp size={12} /> Rising</span>;
-  return <span className="trend trend-stable"><Minus size={12} /> Stable</span>;
+    return <span className="trend trend-rise"><TrendingUp size={12} /> Price rising</span>;
+  return <span className="trend trend-stable"><Minus size={12} /> Stable price</span>;
 }
 
 export default function ProductCard({ product, onCompare, isComparing, onSave, isSaved }) {
   const isBest = product.rank === 1;
   const [imgError, setImgError] = useState(false);
-  const rankLabel = RANK_LABELS[product.rank] || `${product.rank}th`;
+  const rankLabel = RANK_LABELS[product.rank] || `${product.rank}th Choice`;
   const rankClass = RANK_CLASSES[product.rank] || "badge-rank3";
 
   return (
     <div className={`product-card ${isBest ? "product-card--best" : ""} ${isComparing ? "product-card--comparing" : ""}`}>
 
+      {/* Image */}
       {product.image && !imgError && (
         <div style={{
           width: "100%",
-          height: "150px",
+          height: "180px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           background: "#f7f6f2",
           borderRadius: "10px",
-          marginBottom: "12px",
+          marginBottom: "14px",
           overflow: "hidden",
         }}>
           <img
             src={`https://smart-consumer-backend.onrender.com/image-proxy?url=${encodeURIComponent(product.image)}`}
             alt={product.name}
-            style={{ maxHeight: "130px", maxWidth: "100%", objectFit: "contain" }}
+            style={{ maxHeight: "160px", maxWidth: "85%", objectFit: "contain" }}
             onError={() => setImgError(true)}
           />
         </div>
       )}
 
-      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "8px" }}>
+      {/* Badges row */}
+      <div style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "10px", flexWrap: "wrap" }}>
         <span className={`rank-badge ${rankClass}`}>{rankLabel}</span>
         {product.platform && (
           <span className={`platform-badge ${product.platform === "Amazon" ? "platform-amazon" : "platform-flipkart"}`}>
@@ -53,12 +55,13 @@ export default function ProductCard({ product, onCompare, isComparing, onSave, i
         )}
       </div>
 
+      {/* Product name */}
       <h2 style={{
         fontFamily: "'Syne', sans-serif",
-        fontSize: "14px",
+        fontSize: "15px",
         fontWeight: "600",
         color: "var(--text-primary)",
-        marginBottom: "6px",
+        marginBottom: "8px",
         lineHeight: "1.4",
         display: "-webkit-box",
         WebkitLineClamp: 2,
@@ -66,26 +69,30 @@ export default function ProductCard({ product, onCompare, isComparing, onSave, i
         overflow: "hidden",
       }}>{product.name}</h2>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
-        <span style={{ fontSize: "18px", fontWeight: "700", color: "var(--accent)" }}>{product.price}</span>
+      {/* Price + trend */}
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px", flexWrap: "wrap" }}>
+        <span style={{ fontSize: "17px", fontWeight: "700", color: "var(--text-primary)" }}>{product.price}</span>
         <PriceTrendBadge trend={product.priceTrend} />
       </div>
 
+      {/* Rating */}
       {product.rating && (
-        <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "12px" }}>
+        <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "14px" }}>
           ⭐ {product.rating}
-          {product.reviewCount ? ` · ${Number(product.reviewCount).toLocaleString()} reviews` : ""}
+          {product.reviewCount ? ` (${Number(product.reviewCount).toLocaleString()} reviews)` : ""}
         </div>
       )}
 
+      {/* Score bars */}
       <div className="scores">
         <ScoreBar label="Sentiment" value={product.sentiment} />
         <ScoreBar label="Trust score" value={product.trustScore} />
         <ScoreBar label="Image auth." value={product.imageAuth} />
       </div>
 
+      {/* Tags */}
       {(product.positives?.length > 0 || product.complaints?.length > 0) && (
-        <div className="card-tags" style={{ marginTop: "10px", marginBottom: "10px" }}>
+        <div className="card-tags" style={{ marginTop: "12px", marginBottom: "12px" }}>
           {product.positives?.map((t) => (
             <span key={t} className="tag tag-ok">{t}</span>
           ))}
@@ -95,7 +102,8 @@ export default function ProductCard({ product, onCompare, isComparing, onSave, i
         </div>
       )}
 
-      <div style={{ display: "flex", gap: "6px", marginTop: "12px" }}>
+      {/* Actions */}
+      <div style={{ display: "flex", gap: "6px", marginTop: "14px" }}>
         {product.url && (
           
             href={product.url}
@@ -120,9 +128,8 @@ export default function ProductCard({ product, onCompare, isComparing, onSave, i
           <button
             className={`compare-btn ${isComparing ? "compare-btn--active" : ""}`}
             onClick={() => onCompare(product)}
-            style={{ flex: "none", padding: "8px 12px" }}
           >
-            {isComparing ? "✓" : "+ Compare"}
+            {isComparing ? "✓ Added" : "+ Compare"}
           </button>
         )}
       </div>
