@@ -128,7 +128,7 @@ async def fetch_amazon_product(client, asin, headers, index):
         if not reviews:
             reviews = ["Good product", "Decent quality", "Value for money", "Satisfactory", "Would recommend"]
         sentiment = analyze_sentiment(reviews)
-        trust = detect_fake_reviews(reviews)
+        trust = calculate_trust_score(review_count, rating, sentiment)
         positives, complaints = extract_keywords(reviews)
         breakdown = get_sentiment_breakdown(reviews)
         discount = data.get("priceSaving", 0) or 0
@@ -231,7 +231,7 @@ async def search(query: str = ""):
         discount = p.get("discount_percent", p.get("discount", 0))
         price_trend = "dropping" if discount and int(str(discount).split("%")[0].strip() or 0) > 5 else "stable"
         sentiment = analyze_sentiment(default_reviews)
-        trust = detect_fake_reviews(default_reviews)
+       trust = calculate_trust_score(review_count, rating, sentiment)
         positives, complaints = extract_keywords(default_reviews)
         breakdown = get_sentiment_breakdown(default_reviews)
         results.append({
@@ -261,10 +261,11 @@ async def search(query: str = ""):
                 if p:
                     results.append(p)
 
-    results.sort(key=lambda x: (
-        float(x.get("rating", 0) or 0) * 20 +
-        x.get("sentiment", 0) * 0.4 +
-        x.get("trustScore", 0) * 0.4
+   results.sort(key=lambda x: (
+        float(x.get("rating", 0) or 0) * 30 +
+        int(str(x.get("reviewCount", 0) or 0)) * 0.001 +
+        x.get("sentiment", 0) * 0.2 +
+        x.get("trustScore", 0) * 0.2
     ), reverse=True)
 
     for i, r in enumerate(results):
