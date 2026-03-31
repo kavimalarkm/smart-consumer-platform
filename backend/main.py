@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from textblob import TextBlob
@@ -270,6 +270,57 @@ async def search(query: str = ""):
         r["rank"] = i + 1
 
     return {"query": query, "total": len(results), "products": results}
+@app.post("/analyze-image")
+async def analyze_image_endpoint(file: UploadFile = File(None), url: str = None):
+    try:
+        import io
+        if file and file.filename:
+            contents = await file.read()
+            img_bytes = contents
+        elif url:
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+                img_bytes = response.content
+        else:
+            return {"error": "Please provide an image file or URL", "score": 0, "verdict": "No input", "flags": []}
+
+        score = 100
+        flags = []
+
+        if len(img_bytes) > 5_000_000:
+            score -= 20
+            flags.append("Unusually large file size")
+
+        if len(img_bytes) < 5000:
+            score -= 30
+            flags.append("Very small file — may be placeholder")
+
+        jpeg_header = img_bytes[:3] == b'\xff\xd8\xff'
+        png_header = img_bytes[:8] == b'\x89PNG\r\n\x1a\n'
+        webp_header = img_bytes[8:12] == b'WEBP'
+
+        if not (jpeg_header or png_header or webp_header):
+            score -= 20
+            flags.append("Unusual image format")
+
+        has_exif = b'Exif' in img_bytes[:1000]
+        if not has_exif:
+            score -= 15
+            flags.append("No camera metadata found")
+        else:
+            score += 10
+
+        if b'stock' in img_bytes[:500].lower() or b'getty' in img_bytes[:500].lower() or b'shutterstock' in img_bytes[:500].lower():
+            score -= 25
+            flags.append("Stock photo watermark detected")
+
+        score = max(0, min(100, score))
+        verdict = "Likely authentic" if score >= 75 else "Possibly edited" if score >= 50 else "Likely fake or stock photo"
+
+        return {"score": score, "verdict": verdict, "flags": flags}
+
+    except Exception as e:
+        return {"error": str(e), "score": 0, "verdict": "Could not analyze", "flags": []}
 
 @app.get("/analyze-sentiment")
 async def analyze_sentiment_endpoint(text: str = ""):
