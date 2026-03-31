@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from textblob import TextBlob
 import httpx
-import html
 from collections import Counter
 import re
 import asyncio
@@ -30,16 +29,14 @@ def analyze_sentiment(reviews):
         score = (blob.sentiment.polarity + 1) / 2 * 100
         total += score
     return round(total / len(reviews))
-def detect_fake_reviews(reviews):
-    if not reviews:
-        return 80
-    unique = len(set(reviews))
-    total = len(reviews)
-    return round((unique / total) * 100)
 
 def calculate_trust_score(review_count, rating, sentiment):
-    rating = float(rating or 0)
-    review_count = int(review_count or 0)
+    try:
+        rating = float(rating or 0)
+        review_count = int(review_count or 0)
+    except:
+        rating = 0
+        review_count = 0
     if review_count > 100000:
         review_trust = 95
     elif review_count > 10000:
@@ -132,7 +129,7 @@ async def fetch_amazon_product(client, asin, headers, index):
         positives, complaints = extract_keywords(reviews)
         breakdown = get_sentiment_breakdown(reviews)
         discount = data.get("priceSaving", 0) or 0
-        price_trend = "dropping" if discount and float(str(discount).replace("%","").strip() or 0) > 5 else "stable"
+        price_trend = "dropping" if discount and float(str(discount).replace("%", "").strip() or 0) > 5 else "stable"
         return {
             "title": title,
             "price": price,
@@ -231,7 +228,7 @@ async def search(query: str = ""):
         discount = p.get("discount_percent", p.get("discount", 0))
         price_trend = "dropping" if discount and int(str(discount).split("%")[0].strip() or 0) > 5 else "stable"
         sentiment = analyze_sentiment(default_reviews)
-       trust = calculate_trust_score(review_count, rating, sentiment)
+        trust = calculate_trust_score(review_count, rating, sentiment)
         positives, complaints = extract_keywords(default_reviews)
         breakdown = get_sentiment_breakdown(default_reviews)
         results.append({
@@ -261,7 +258,7 @@ async def search(query: str = ""):
                 if p:
                     results.append(p)
 
-   results.sort(key=lambda x: (
+    results.sort(key=lambda x: (
         float(x.get("rating", 0) or 0) * 30 +
         int(str(x.get("reviewCount", 0) or 0)) * 0.001 +
         x.get("sentiment", 0) * 0.2 +
