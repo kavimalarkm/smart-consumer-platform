@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import ScoreBar from "./ScoreBar";
 import { TrendingDown, TrendingUp, Minus, Bookmark, BookmarkCheck } from "lucide-react";
 
@@ -17,14 +18,24 @@ function PriceTrendBadge({ trend }) {
 export default function ProductCard({ product, onCompare, isComparing, onSave, isSaved }) {
   const isBest = product.rank === 1;
   const [imgError, setImgError] = useState(false);
+  const router = useRouter();
   const rankLabel = RANK_LABELS[product.rank] || `${product.rank}th Choice`;
   const rankClass = RANK_CLASSES[product.rank] || "badge-rank3";
+
+  function goToDetail() {
+    const data = encodeURIComponent(JSON.stringify(product));
+    router.push(`/product?data=${data}`);
+  }
 
   return (
     <div className={`product-card ${isBest ? "product-card--best" : ""} ${isComparing ? "product-card--comparing" : ""}`}>
 
+      {/* Clickable image → goes to detail page */}
       {product.image && !imgError && (
-        <div style={{ width:"100%", height:"160px", display:"flex", alignItems:"center", justifyContent:"center", background:"#f7f6f2", borderRadius:"10px", marginBottom:"14px", overflow:"hidden" }}>
+        <div
+          onClick={goToDetail}
+          style={{ width:"100%", height:"160px", display:"flex", alignItems:"center", justifyContent:"center", background:"#f7f6f2", borderRadius:"10px", marginBottom:"14px", overflow:"hidden", cursor:"pointer" }}
+        >
           <img
             src={`https://smart-consumer-backend.onrender.com/image-proxy?url=${encodeURIComponent(product.image)}`}
             alt={product.name}
@@ -43,7 +54,11 @@ export default function ProductCard({ product, onCompare, isComparing, onSave, i
         )}
       </div>
 
-      <h2 style={{ fontFamily:"'Syne', sans-serif", fontSize:"15px", fontWeight:"600", color:"var(--text-primary)", marginBottom:"8px", lineHeight:"1.4", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", overflow:"hidden" }}>{product.name}</h2>
+      {/* Clickable name → goes to detail page */}
+      <h2
+        onClick={goToDetail}
+        style={{ fontFamily:"'Syne', sans-serif", fontSize:"15px", fontWeight:"600", color:"var(--text-primary)", marginBottom:"8px", lineHeight:"1.4", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", overflow:"hidden", cursor:"pointer" }}
+      >{product.name}</h2>
 
       <div style={{ display:"flex", alignItems:"center", gap:"10px", marginBottom:"4px", flexWrap:"wrap" }}>
         <span style={{ fontSize:"17px", fontWeight:"700", color:"var(--text-primary)" }}>{product.price}</span>
@@ -51,7 +66,7 @@ export default function ProductCard({ product, onCompare, isComparing, onSave, i
       </div>
 
       {product.rating && (
-        <div style={{ fontSize:"13px", color:"var(--text-secondary)", marginBottom:"14px" }}>
+        <div style={{ fontSize:"13px", color:"var(--text-secondary)", marginBottom:"12px" }}>
           ⭐ {product.rating}
           {product.reviewCount ? ` (${Number(product.reviewCount).toLocaleString()} reviews)` : ""}
         </div>
@@ -64,16 +79,22 @@ export default function ProductCard({ product, onCompare, isComparing, onSave, i
       </div>
 
       {(product.positives?.length > 0 || product.complaints?.length > 0) && (
-        <div className="card-tags" style={{ marginTop:"12px", marginBottom:"12px" }}>
+        <div className="card-tags" style={{ marginTop:"10px", marginBottom:"10px" }}>
           {product.positives?.map((t) => <span key={t} className="tag tag-ok">{t}</span>)}
           {product.complaints?.map((t) => <span key={t} className="tag tag-warn">{t}</span>)}
         </div>
       )}
 
-      <div style={{ display:"flex", gap:"6px", marginTop:"14px" }}>
+      <div style={{ display:"flex", gap:"6px", marginTop:"12px" }}>
+        <button
+          onClick={goToDetail}
+          style={{ flex:1, padding:"8px 12px", background:"var(--accent-light)", border:"1px solid var(--accent)", borderRadius:"99px", fontSize:"12px", fontWeight:"600", color:"var(--accent)", cursor:"pointer", fontFamily:"'Syne', sans-serif" }}
+        >
+          View Details
+        </button>
         {product.url && (
           <a href={product.url} target="_blank" rel="noopener noreferrer" className="view-btn" style={{ flex:1, textAlign:"center" }}>
-            View on {product.platform} ↗
+            Buy ↗
           </a>
         )}
         {onSave && (
@@ -83,7 +104,7 @@ export default function ProductCard({ product, onCompare, isComparing, onSave, i
         )}
         {onCompare && (
           <button className={`compare-btn ${isComparing ? "compare-btn--active" : ""}`} onClick={() => onCompare(product)}>
-            {isComparing ? "✓ Added" : "+ Compare"}
+            {isComparing ? "✓" : "+ Compare"}
           </button>
         )}
       </div>
