@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { supabase } from "./lib/supabase";
 import SearchBar from "./components/SearchBar";
 import ProductCard from "./components/ProductCard";
 import CompareModal from "./components/CompareModal";
@@ -15,22 +16,34 @@ export default function Home() {
   const [history, setHistory] = useState([]);
   const [compareList, setCompareList] = useState([]);
   const [showCompare, setShowCompare] = useState(false);
+  const [user, setUser] = useState(null);
+  const [savedIds, setSavedIds] = useState({});
 
   useEffect(() => {
     document.body.classList.toggle("dark-mode", darkMode);
   }, [darkMode]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+    supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+  }, []);
 
   async function handleSearch(q) {
     const searchQuery = q || query;
     if (!searchQuery.trim()) return;
     setQuery(searchQuery);
     setLoading(true);
+    setProducts([]);
     try {
       const res = await fetch(
         `https://smart-consumer-backend.onrender.com/search?query=${encodeURIComponent(searchQuery)}`
       );
       const data = await res.json();
-      setProducts(data.products);
+      setProducts(data.products || []);
       setSearched(true);
       setHistory((prev) => {
         const updated = [searchQuery, ...prev.filter((h) => h !== searchQuery)];
@@ -40,6 +53,36 @@ export default function Home() {
       console.error("API error:", error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSave(product) {
+    if (!user) {
+      alert("Please login to save products!");
+      return;
+    }
+    const key = `${product.name || product.title}-${product.platform}`;
+    if (savedIds[key]) {
+      await supabase.from("saved_products").delete().eq("id", savedIds[key]);
+      setSavedIds((prev) => {
+        const updated = { ...prev };
+        delete updated[key];
+        return updated;
+      });
+    } else {
+      const { data, error } = await supabase.from("saved_products").insert({
+        user_id: user.id,
+        product_name: product.name || product.title,
+        product_image: product.image || "",
+        product_price: product.price,
+        product_url: product.url || "",
+        platform: product.platform,
+        sentiment: product.sentiment,
+        trust_score: product.trustScore,
+      }).select().single();
+      if (!error && data) {
+        setSavedIds((prev) => ({ ...prev, [key]: data.id }));
+      }
     }
   }
 
@@ -177,81 +220,85 @@ export default function Home() {
             </div>
           </div>
           <div className="product-grid">
-          {getSortedProducts().map((p, i) => (
-  <ProductCard
-    key={p.id}
-    product={p}
-    onCompare={handleCompare}
-    isComparing={!!compareList.find((c) => c.id === p.id)}
-    isBestDeal={i === 0}
-  />
-))}
+            {getSortedProducts().map((p) => {
+              const key = `${p.name || p.title}-${p.platform}`;
+              return (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  onCompare={handleCompare}
+                  isComparing={!!compareList.find((c) => c.id === p.id)}
+                  onSave={handleSave}
+                  isSaved={!!savedIds[key]}
+                />
+              );
+            })}
           </div>
         </>
       )}
 
-     {!searched && !loading && (
-  <div className="home-sections">
-    <div className="stats-row">
-      <div className="stat-card">
-        <div className="stat-number">10+</div>
-        <div className="stat-label">Products per search</div>
-      </div>
-      <div className="stat-card">
-        <div className="stat-number">2</div>
-        <div className="stat-label">Platforms compared</div>
-      </div>
-      <div className="stat-card">
-        <div className="stat-number">AI</div>
-        <div className="stat-label">Powered analysis</div>
-      </div>
-      <div className="stat-card">
-        <div className="stat-number">Free</div>
-        <div className="stat-label">Always free</div>
-      </div>
-    </div>
+      {!searched && !loading && (
+        <div className="home-sections">
+          <div className="stats-row">
+            <div className="stat-card">
+              <div className="stat-number">10+</div>
+              <div className="stat-label">Products per search</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">2</div>
+              <div className="stat-label">Platforms compared</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">AI</div>
+              <div className="stat-label">Powered analysis</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">Free</div>
+              <div className="stat-label">Always free</div>
+            </div>
+          </div>
 
-    <div className="trending-section">
-      <p className="trending-title">🔥 Trending Searches</p>
-      <div className="trending-grid">
-        {[
-          { emoji: "📱", label: "iPhone 16" },
-          { emoji: "💻", label: "Laptop under 50000" },
-          { emoji: "🎧", label: "Wireless earbuds" },
-          { emoji: "📺", label: "Smart TV 43 inch" },
-          { emoji: "⌚", label: "Smart watch" },
-          { emoji: "📷", label: "DSLR camera" },
-          { emoji: "🎮", label: "Gaming chair" },
-          { emoji: "👟", label: "Nike shoes" },
-        ].map((item) => (
-          <button
-            key={item.label}
-            className="trending-chip"
-            onClick={() => handleSearch(item.label)}
-          >
-            <span className="trending-emoji">{item.emoji}</span>
-            <span>{item.label}</span>
-          </button>
-        ))}
-      </div>
-    </div>
+          <div className="trending-section">
+            <p className="trending-title">🔥 Trending Searches</p>
+            <div className="trending-grid">
+              {[
+                { emoji: "📱", label: "iPhone 16" },
+                { emoji: "💻", label: "Laptop under 50000" },
+                { emoji: "🎧", label: "Wireless earbuds" },
+                { emoji: "📺", label: "Smart TV 43 inch" },
+                { emoji: "⌚", label: "Smart watch" },
+                { emoji: "📷", label: "DSLR camera" },
+                { emoji: "🎮", label: "Gaming chair" },
+                { emoji: "👟", label: "Nike shoes" },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  className="trending-chip"
+                  onClick={() => handleSearch(item.label)}
+                >
+                  <span className="trending-emoji">{item.emoji}</span>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
-    <div className="example-queries">
-      <p className="eq-label">Or try these example searches</p>
-      <div className="eq-chips">
-        {[
-          "Smartphone under ₹20000 with good camera",
-          "Laptop under ₹50000 for students",
-          "Wireless earbuds under ₹3000",
-        ].map((q) => (
-          <button key={q} className="eq-chip" onClick={() => handleSearch(q)}>
-            {q}
-          </button>
-        ))}
-      </div>
-    </div>
-  </div>
-)}
+          <div className="example-queries">
+            <p className="eq-label">Or try these example searches</p>
+            <div className="eq-chips">
+              {[
+                "Smartphone under ₹20000 with good camera",
+                "Laptop under ₹50000 for students",
+                "Wireless earbuds under ₹3000",
+              ].map((q) => (
+                <button key={q} className="eq-chip" onClick={() => handleSearch(q)}>
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
