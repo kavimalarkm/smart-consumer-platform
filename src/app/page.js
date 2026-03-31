@@ -4,6 +4,8 @@ import { supabase } from "./lib/supabase";
 import SearchBar from "./components/SearchBar";
 import ProductCard from "./components/ProductCard";
 import CompareModal from "./components/CompareModal";
+import AuthModal from "./components/AuthModal";
+import Link from "next/link";
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -18,6 +20,8 @@ export default function Home() {
   const [showCompare, setShowCompare] = useState(false);
   const [user, setUser] = useState(null);
   const [savedIds, setSavedIds] = useState({});
+  const [showAuth, setShowAuth] = useState(false);
+  const [savedCount, setSavedCount] = useState(0);
 
   useEffect(() => {
     document.body.classList.toggle("dark-mode", darkMode);
@@ -26,11 +30,21 @@ export default function Home() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
+      if (user) loadSavedCount(user.id);
     });
     supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
+      if (session?.user) loadSavedCount(session.user.id);
     });
   }, []);
+
+  async function loadSavedCount(userId) {
+    const { count } = await supabase
+      .from("saved_products")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId);
+    setSavedCount(count || 0);
+  }
 
   async function handleSearch(q) {
     const searchQuery = q || query;
@@ -58,7 +72,7 @@ export default function Home() {
 
   async function handleSave(product) {
     if (!user) {
-      alert("Please login to save products!");
+      setShowAuth(true);
       return;
     }
     const key = `${product.name || product.title}-${product.platform}`;
@@ -69,6 +83,7 @@ export default function Home() {
         delete updated[key];
         return updated;
       });
+      setSavedCount((prev) => Math.max(0, prev - 1));
     } else {
       const { data, error } = await supabase.from("saved_products").insert({
         user_id: user.id,
@@ -82,6 +97,7 @@ export default function Home() {
       }).select().single();
       if (!error && data) {
         setSavedIds((prev) => ({ ...prev, [key]: data.id }));
+        setSavedCount((prev) => prev + 1);
       }
     }
   }
@@ -127,6 +143,13 @@ export default function Home() {
       <button className="dark-mode-btn" onClick={() => setDarkMode(!darkMode)}>
         {darkMode ? "☀️ Light" : "🌙 Dark"}
       </button>
+
+      {showAuth && (
+        <AuthModal
+          onClose={() => setShowAuth(false)}
+          onLogin={(u) => { setUser(u); setShowAuth(false); }}
+        />
+      )}
 
       {compareList.length > 0 && (
         <div className="compare-bar">
@@ -177,6 +200,62 @@ export default function Home() {
 
       {searched && !loading && (
         <>
+          {/* Saved products bar */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius)",
+            padding: "12px 16px",
+            marginBottom: "1rem",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span style={{ fontSize: "18px" }}>🔖</span>
+              <div>
+                <p style={{ fontSize: "13px", fontWeight: "600", color: "var(--text-primary)", fontFamily: "'Syne', sans-serif" }}>
+                  Your Saved Products
+                </p>
+                <p style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                  {user
+                    ? savedCount > 0
+                      ? `${savedCount} product${savedCount > 1 ? "s" : ""} saved`
+                      : "No saved products yet — click 🔖 on any card"
+                    : "Login to save products for later"}
+                </p>
+              </div>
+            </div>
+            {user ? (
+              <Link href="/saved" style={{
+                background: "var(--accent)",
+                color: "white",
+                borderRadius: "99px",
+                padding: "7px 16px",
+                fontSize: "12px",
+                fontWeight: "600",
+                textDecoration: "none",
+                fontFamily: "'Syne', sans-serif",
+              }}>
+                View Saved →
+              </Link>
+            ) : (
+              <button onClick={() => setShowAuth(true)} style={{
+                background: "var(--accent)",
+                color: "white",
+                border: "none",
+                borderRadius: "99px",
+                padding: "7px 16px",
+                fontSize: "12px",
+                fontWeight: "600",
+                cursor: "pointer",
+                fontFamily: "'Syne', sans-serif",
+              }}>
+                Login to Save
+              </button>
+            )}
+          </div>
+
           <div className="results-toolbar">
             <span className="results-label">
               <span className="results-count">{getSortedProducts().length}</span>
@@ -219,6 +298,7 @@ export default function Home() {
               </div>
             </div>
           </div>
+
           <div className="product-grid">
             {getSortedProducts().map((p) => {
               const key = `${p.name || p.title}-${p.platform}`;
