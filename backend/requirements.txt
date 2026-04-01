@@ -3,3 +3,4 @@ uvicorn
 textblob
 httpx
 nltk
+python-multipart
