@@ -295,11 +295,11 @@ async def analyze_image_endpoint(file: UploadFile = File(None), url: str = None)
             score -= 30
             flags.append("Very small file — may be placeholder")
 
-        jpeg_header = img_bytes[:3] == b'\xff\xd8\xff'
-        png_header = img_bytes[:8] == b'\x89PNG\r\n\x1a\n'
-        webp_header = img_bytes[8:12] == b'WEBP'
-
-        if not (jpeg_header or png_header or webp_header):
+        jpeg_header = b'\xff\xd8\xff' in img_bytes[:20]
+        png_header = b'\x89PNG' in img_bytes[:20]
+        webp_header = b'WEBP' in img_bytes[:20]
+        riff_header = b'RIFF' in img_bytes[:20]
+        if not (jpeg_header or png_header or webp_header or riff_header):
             score -= 20
             flags.append("Unusual image format")
 
