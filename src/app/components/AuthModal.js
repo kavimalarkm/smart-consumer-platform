@@ -26,9 +26,14 @@ export default function AuthModal({ onClose, onLogin }) {
         onClose();
       }
     } else {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) setError(error.message);
-      else setMessage("Check your email to confirm your account!");
+      else if (data.user) {
+        onLogin(data.user);
+        onClose();
+      } else {
+        setMessage("Check your email to confirm your account!");
+      }
     }
     setLoading(false);
   }
