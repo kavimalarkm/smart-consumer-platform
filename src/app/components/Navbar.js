@@ -59,9 +59,12 @@ export default function Navbar() {
             <Link href="/about" className={`navbar-link ${pathname === "/about" ? "active" : ""}`}>
               About
             </Link>
+           <Link href="/saved" className={`navbar-link ${pathname === "/saved" ? "active" : ""}`}>
+              🔖 Saved
+            </Link>
             {user && (
-              <Link href="/saved" className={`navbar-link ${pathname === "/saved" ? "active" : ""}`}>
-                Saved
+              <Link href="/profile" className={`navbar-link ${pathname === "/profile" ? "active" : ""}`}>
+                👤 Profile
               </Link>
             )}
             {user ? (
