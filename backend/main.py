@@ -53,6 +53,82 @@ def calculate_trust_score(review_count, rating, sentiment):
     sentiment_trust = sentiment
     return round((review_trust * 0.5) + (rating_trust * 0.3) + (sentiment_trust * 0.2))
 
+def get_buy_recommendation(price_trend, sentiment, trust_score, rating, review_count):
+    score = 0
+    reasons = []
+    wait_reasons = []
+    try:
+        rating = float(rating or 0)
+        review_count = int(review_count or 0)
+    except:
+        rating = 0
+        review_count = 0
+    if price_trend == "dropping":
+        score += 2
+        reasons.append("Price is currently dropping")
+    elif price_trend == "rising":
+        score -= 2
+        wait_reasons.append("Price is rising — may drop soon")
+    else:
+        score += 1
+        reasons.append("Price is stable")
+    if sentiment >= 70:
+        score += 2
+        reasons.append("Reviews are highly positive")
+    elif sentiment >= 55:
+        score += 1
+        reasons.append("Reviews are mostly positive")
+    else:
+        score -= 1
+        wait_reasons.append("Mixed or negative reviews")
+    if trust_score >= 80:
+        score += 2
+        reasons.append("Reviews appear genuine")
+    elif trust_score >= 60:
+        score += 1
+    else:
+        score -= 2
+        wait_reasons.append("Many suspicious reviews detected")
+    if rating >= 4.5:
+        score += 2
+        reasons.append(f"Excellent rating of {rating}⭐")
+    elif rating >= 4.0:
+        score += 1
+        reasons.append(f"Good rating of {rating}⭐")
+    elif rating < 3.5:
+        score -= 1
+        wait_reasons.append(f"Low rating of {rating}⭐")
+    if review_count > 10000:
+        score += 1
+        reasons.append(f"{review_count:,} reviews — well tested")
+    elif review_count < 50:
+        score -= 1
+        wait_reasons.append("Too few reviews to be certain")
+    if score >= 5:
+        verdict = "Strong Buy"
+        emoji = "🟢"
+        color = "green"
+    elif score >= 3:
+        verdict = "Buy Now"
+        emoji = "✅"
+        color = "green"
+    elif score >= 1:
+        verdict = "Consider"
+        emoji = "🟡"
+        color = "amber"
+    else:
+        verdict = "Wait"
+        emoji = "⏳"
+        color = "red"
+    return {
+        "verdict": verdict,
+        "emoji": emoji,
+        "color": color,
+        "score": score,
+        "reasons": reasons[:3],
+        "wait_reasons": wait_reasons[:2],
+    }
+
 def get_sentiment_breakdown(reviews):
     if not reviews:
         return {"positive": 60, "neutral": 20, "negative": 20}
@@ -130,6 +206,7 @@ async def fetch_amazon_product(client, asin, headers, index):
         breakdown = get_sentiment_breakdown(reviews)
         discount = data.get("priceSaving", 0) or 0
         price_trend = "dropping" if discount and float(str(discount).replace("%", "").strip() or 0) > 5 else "stable"
+        buy_rec = get_buy_recommendation(price_trend, sentiment, trust, rating, review_count)
         return {
             "title": title,
             "price": price,
@@ -145,6 +222,7 @@ async def fetch_amazon_product(client, asin, headers, index):
             "complaints": complaints,
             "positives": positives,
             "sentimentBreakdown": breakdown,
+            "buyRecommendation": buy_rec,
         }
     except Exception as e:
         print(f"Amazon product error for {asin}: {e}")
@@ -231,6 +309,7 @@ async def search(query: str = ""):
         trust = calculate_trust_score(review_count, rating, sentiment)
         positives, complaints = extract_keywords(default_reviews)
         breakdown = get_sentiment_breakdown(default_reviews)
+        buy_rec = get_buy_recommendation(price_trend, sentiment, trust, rating, review_count)
         results.append({
             "id": i + 1,
             "rank": i + 1,
@@ -248,6 +327,7 @@ async def search(query: str = ""):
             "complaints": complaints,
             "positives": positives,
             "sentimentBreakdown": breakdown,
+            "buyRecommendation": buy_rec,
         })
 
     if amazon_asins:
@@ -270,10 +350,10 @@ async def search(query: str = ""):
         r["rank"] = i + 1
 
     return {"query": query, "total": len(results), "products": results}
+
 @app.post("/analyze-image")
 async def analyze_image_endpoint(file: UploadFile = File(None), url: str = None):
     try:
-        import io
         if file and file.filename:
             contents = await file.read()
             img_bytes = contents
@@ -283,18 +363,14 @@ async def analyze_image_endpoint(file: UploadFile = File(None), url: str = None)
                 img_bytes = response.content
         else:
             return {"error": "Please provide an image file or URL", "score": 0, "verdict": "No input", "flags": []}
-
         score = 100
         flags = []
-
         if len(img_bytes) > 5_000_000:
             score -= 20
             flags.append("Unusually large file size")
-
         if len(img_bytes) < 5000:
             score -= 30
             flags.append("Very small file — may be placeholder")
-
         jpeg_header = b'\xff\xd8\xff' in img_bytes[:20]
         png_header = b'\x89PNG' in img_bytes[:20]
         webp_header = b'WEBP' in img_bytes[:20]
@@ -302,23 +378,18 @@ async def analyze_image_endpoint(file: UploadFile = File(None), url: str = None)
         if not (jpeg_header or png_header or webp_header or riff_header):
             score -= 20
             flags.append("Unusual image format")
-
         has_exif = b'Exif' in img_bytes[:1000]
         if not has_exif:
             score -= 15
             flags.append("No camera metadata found")
         else:
             score += 10
-
         if b'stock' in img_bytes[:500].lower() or b'getty' in img_bytes[:500].lower() or b'shutterstock' in img_bytes[:500].lower():
             score -= 25
             flags.append("Stock photo watermark detected")
-
         score = max(0, min(100, score))
         verdict = "Likely authentic" if score >= 75 else "Possibly edited" if score >= 50 else "Likely fake or stock photo"
-
         return {"score": score, "verdict": verdict, "flags": flags}
-
     except Exception as e:
         return {"error": str(e), "score": 0, "verdict": "Could not analyze", "flags": []}
 
@@ -343,4 +414,4 @@ async def analyze_sentiment_endpoint(text: str = ""):
         "positive": round((positive / total) * 100),
         "neutral": round((neutral / total) * 100),
         "negative": round((negative / total) * 100),
-    }# force redeploy
+    }
