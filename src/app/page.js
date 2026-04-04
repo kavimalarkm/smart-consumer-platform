@@ -6,6 +6,7 @@ import ProductCard from "./components/ProductCard";
 import CompareModal from "./components/CompareModal";
 import AuthModal from "./components/AuthModal";
 import Link from "next/link";
+import SkeletonCard from "./components/SkeletonCard";
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -190,11 +191,10 @@ export default function Home() {
       </header>
 
       {loading && (
-        <div className="loading-state">
-          <div className="loading-dots">
-            <span></span><span></span><span></span>
-          </div>
-          <p>Analyzing reviews, prices and images…</p>
+        <div className="product-grid" style={{ marginTop: "1rem" }}>
+          {[1,2,3,4,5,6].map((i) => (
+            <SkeletonCard key={i} />
+          ))}
         </div>
       )}
 

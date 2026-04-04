@@ -2708,3 +2708,87 @@ input:focus-visible {
   height: 200px;
   opacity: 0;
 }
+
+/* ===== SKELETON LOADING ===== */
+@keyframes skeleton-shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-card {
+  pointer-events: none;
+}
+
+.skeleton-image {
+  width: 100%;
+  height: 160px;
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+
+.skeleton-badge {
+  height: 24px;
+  width: 80px;
+  border-radius: 99px;
+}
+
+.skeleton-title {
+  height: 16px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.skeleton-title-short {
+  height: 16px;
+  width: 70%;
+  margin-bottom: 12px;
+}
+
+.skeleton-price {
+  height: 22px;
+  width: 80px;
+  border-radius: 6px;
+}
+
+.skeleton-trend {
+  height: 20px;
+  width: 90px;
+  border-radius: 99px;
+}
+
+.skeleton-rating {
+  height: 14px;
+  width: 140px;
+  margin-bottom: 4px;
+}
+
+.skeleton-bar {
+  height: 6px;
+  width: 100%;
+  border-radius: 99px;
+}
+
+.skeleton-tag {
+  height: 24px;
+  width: 60px;
+  border-radius: 99px;
+}
+
+.skeleton-btn {
+  height: 34px;
+  flex: 1;
+  border-radius: 99px;
+}
+
+.skeleton-btn-sm {
+  height: 34px;
+  width: 36px;
+  border-radius: 99px;
+}
