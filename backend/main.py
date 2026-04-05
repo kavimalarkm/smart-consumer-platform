@@ -18,7 +18,7 @@ app.add_middleware(
 
 RAPIDAPI_KEY = "3cb5bef83emshb75657b8afe33b3p139e02jsn5a1d89e95309"
 FLIPKART_HOST = "real-time-flipkart.p.rapidapi.com"
-AMAZON_HOST = "axesso-axesso-amazon-data-service-v1.p.rapidapi.com"
+AMAZON_HOST = "amazon-online-data-api.p.rapidapi.com"
 
 def analyze_sentiment(reviews):
     if not reviews:
@@ -246,6 +246,7 @@ async def search(query: str = ""):
 
     flipkart_products = []
     amazon_asins = []
+    amazon_raw = []
 
     async with httpx.AsyncClient(timeout=15) as client:
         try:
@@ -262,23 +263,17 @@ async def search(query: str = ""):
         except Exception as e:
             print(f"Flipkart error: {e}")
 
-        try:
+       try:
             amz_res = await client.get(
-                "https://axesso-axesso-amazon-data-service-v1.p.rapidapi.com/amz/amazon-search-by-keyword-asin",
+                "https://amazon-online-data-api.p.rapidapi.com/search",
                 headers=headers_amazon,
-                params={
-                    "domainCode": "in",
-                    "keyword": query,
-                    "page": "1",
-                    "excludeSponsored": "false",
-                    "sortBy": "relevanceblender",
-                    "withCache": "true"
-                }
+                params={"query": query, "page": "1", "geo": "IN"}
             )
             amz_data = amz_res.json()
-            amazon_asins = amz_data.get("foundProducts", [])[:5]
+            amazon_raw = amz_data.get("products", [])[:5]
         except Exception as e:
             print(f"Amazon search error: {e}")
+            amazon_raw = []
 
     results = []
     default_reviews = ["Good product overall", "Decent quality", "Satisfactory experience", "Value for money", "Would recommend", "Average performance", "Not bad for the price"]
@@ -330,13 +325,49 @@ async def search(query: str = ""):
             "buyRecommendation": buy_rec,
         })
 
-    if amazon_asins:
-        async with httpx.AsyncClient(timeout=15) as client:
-            tasks = [fetch_amazon_product(client, asin, headers_amazon, i) for i, asin in enumerate(amazon_asins)]
-            amazon_results = await asyncio.gather(*tasks)
-            for p in amazon_results:
-                if p:
-                    results.append(p)
+   default_amazon_reviews = ["Good product", "Decent quality", "Value for money", "Satisfactory", "Would recommend"]
+    for i, p in enumerate(amazon_raw):
+        title = p.get("product_title", "Unknown Product")
+        if not title or title.strip() in ["Nike", "Adidas", "Puma", ""]:
+            continue
+        price_usd = p.get("product_price") or p.get("product_original_price") or 0
+        try:
+            price_inr = round(float(price_usd) * 84)
+            price = f"₹{price_inr:,}" if price_inr > 0 else "N/A"
+        except:
+            price = "N/A"
+        rating = str(p.get("product_star_rating") or "4.0")
+        review_count = p.get("product_num_ratings") or 0
+        image = p.get("product_photo", "")
+        url_link = p.get("product_url", "")
+        asin = p.get("asin", "")
+        if not url_link and asin:
+            url_link = f"https://www.amazon.in/dp/{asin}"
+        sentiment = analyze_sentiment(default_amazon_reviews)
+        trust = calculate_trust_score(review_count, rating, sentiment)
+        positives, complaints = extract_keywords(default_amazon_reviews)
+        breakdown = get_sentiment_breakdown(default_amazon_reviews)
+        price_trend = "stable"
+        buy_rec = get_buy_recommendation(price_trend, sentiment, trust, rating, review_count)
+        results.append({
+            "id": len(results) + 1,
+            "rank": len(results) + 1,
+            "name": title,
+            "price": price,
+            "image": image,
+            "url": url_link,
+            "rating": rating,
+            "reviewCount": review_count,
+            "platform": "Amazon",
+            "priceTrend": price_trend,
+            "sentiment": sentiment,
+            "trustScore": trust,
+            "imageAuth": max(50, 80 - (i * 4)),
+            "complaints": complaints,
+            "positives": positives,
+            "sentimentBreakdown": breakdown,
+            "buyRecommendation": buy_rec,
+        })
 
     results.sort(key=lambda x: (
         float(x.get("rating", 0) or 0) * 30 +
