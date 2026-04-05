@@ -84,6 +84,39 @@ export default function ProductCard({ product, onCompare, isComparing, onSave, i
           {product.complaints?.map((t) => <span key={t} className="tag tag-warn">{t}</span>)}
         </div>
       )}
+{product.buyRecommendation && (
+        <div style={{
+          marginTop: "10px",
+          marginBottom: "10px",
+          padding: "10px 14px",
+          borderRadius: "10px",
+          background: product.buyRecommendation.color === "green" ? "#dcfce7" :
+                      product.buyRecommendation.color === "amber" ? "#fef3c7" : "#fee2e2",
+          border: `1px solid ${product.buyRecommendation.color === "green" ? "#16a34a33" :
+                               product.buyRecommendation.color === "amber" ? "#d9770633" : "#dc262633"}`,
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}>
+          <span style={{ fontSize: "18px" }}>{product.buyRecommendation.emoji}</span>
+          <div>
+            <div style={{
+              fontSize: "13px",
+              fontWeight: "700",
+              color: product.buyRecommendation.color === "green" ? "#166534" :
+                     product.buyRecommendation.color === "amber" ? "#92400e" : "#991b1b",
+            }}>
+              {product.buyRecommendation.verdict}
+            </div>
+            {product.buyRecommendation.reasons[0] && (
+              <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                {product.buyRecommendation.reasons[0]}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
 
       <div style={{ display:"flex", gap:"6px", marginTop:"12px" }}>
         <button
