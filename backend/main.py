@@ -18,7 +18,8 @@ app.add_middleware(
 
 RAPIDAPI_KEY = "3cb5bef83emshb75657b8afe33b3p139e02jsn5a1d89e95309"
 FLIPKART_HOST = "real-time-flipkart.p.rapidapi.com"
-AMAZON_HOST = "amazon-online-data-api.p.rapidapi.com"
+AMAZON_HOST = "real-time-amazon-data.p.rapidapi.com"
+
 
 def analyze_sentiment(reviews):
     if not reviews:
@@ -213,12 +214,12 @@ async def search(query: str = ""):
 
         try:
             amz_res = await client.get(
-                "https://amazon-online-data-api.p.rapidapi.com/search",
-                headers=headers_amazon,
-                params={"query": query, "page": "1", "geo": "IN"}
+           "https://real-time-amazon-data.p.rapidapi.com/search",
+            headers=headers_amazon,
+            params={"query": query, "page": "1", "country": "IN", "sort_by": "RELEVANCE"}
             )
             amz_data = amz_res.json()
-            amazon_raw = amz_data.get("products", [])[:5]
+            amazon_raw = amz_data.get("data", {}).get("products", [])[:5]
         except Exception as e:
             print(f"Amazon search error: {e}")
             amazon_raw = []
@@ -278,12 +279,9 @@ async def search(query: str = ""):
         title = p.get("product_title", "Unknown Product")
         if not title or title.strip() in ["Nike", "Adidas", "Puma", "Jordan", ""]:
             continue
-        price_usd = p.get("product_price") or p.get("product_original_price") or 0
-        try:
-            price_inr = round(float(price_usd) * 84)
-            price = f"₹{price_inr:,}" if price_inr > 0 else "N/A"
-        except:
-            price = "N/A"
+        price = p.get("product_price") or p.get("product_original_price") or "N/A"
+if price and price != "N/A":
+    price = str(price)
         rating = str(p.get("product_star_rating") or "4.0")
         review_count = p.get("product_num_ratings") or 0
         image = p.get("product_photo", "")
