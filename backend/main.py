@@ -280,8 +280,8 @@ async def search(query: str = ""):
         if not title or title.strip() in ["Nike", "Adidas", "Puma", "Jordan", ""]:
             continue
         price = p.get("product_price") or p.get("product_original_price") or "N/A"
-if price and price != "N/A":
-    price = str(price)
+        if price and price != "N/A":
+            price = str(price)
         rating = str(p.get("product_star_rating") or "4.0")
         review_count = p.get("product_num_ratings") or 0
         image = p.get("product_photo", "")
