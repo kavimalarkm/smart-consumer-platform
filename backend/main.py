@@ -18,7 +18,7 @@ app.add_middleware(
 
 RAPIDAPI_KEY = "3cb5bef83emshb75657b8afe33b3p139e02jsn5a1d89e95309"
 FLIPKART_HOST = "real-time-flipkart.p.rapidapi.com"
-AMAZON_HOST = "real-time-amazon-data.p.rapidapi.com"
+AMAZON_HOST = "amazon-online-data-api.p.rapidapi.com"
 
 
 def analyze_sentiment(reviews):
