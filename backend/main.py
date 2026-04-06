@@ -177,57 +177,6 @@ async def image_proxy(url: str):
     except:
         return Response(content=b"", media_type="image/jpeg")
 
-async def fetch_amazon_product(client, asin, headers, index):
-    try:
-        res = await client.get(
-            "https://axesso-axesso-amazon-data-service-v1.p.rapidapi.com/amz/amazon-lookup-product",
-            headers=headers,
-            params={"url": f"https://www.amazon.in/dp/{asin}"},
-            timeout=12
-        )
-        data = res.json()
-        if data.get("responseStatus") != "PRODUCT_FOUND_RESPONSE":
-            return None
-        title = data.get("productTitle", "")
-        price_val = data.get("price", 0) or data.get("dealPrice", 0) or 0
-        price = f"₹{price_val:,.0f}" if price_val else "N/A"
-        rating_str = data.get("productRating", "4.0 out of 5 stars")
-        rating = rating_str.split(" ")[0] if rating_str else "4.0"
-        review_count = data.get("countReview", 0)
-        image = data.get("mainImage", {}).get("imageUrl", "")
-        if not image and data.get("imageUrlList"):
-            image = data["imageUrlList"][0]
-        reviews = [r.get("text", "") for r in data.get("globalReviews", []) if r.get("text")]
-        if not reviews:
-            reviews = ["Good product", "Decent quality", "Value for money", "Satisfactory", "Would recommend"]
-        sentiment = analyze_sentiment(reviews)
-        trust = calculate_trust_score(review_count, rating, sentiment)
-        positives, complaints = extract_keywords(reviews)
-        breakdown = get_sentiment_breakdown(reviews)
-        discount = data.get("priceSaving", 0) or 0
-        price_trend = "dropping" if discount and float(str(discount).replace("%", "").strip() or 0) > 5 else "stable"
-        buy_rec = get_buy_recommendation(price_trend, sentiment, trust, rating, review_count)
-        return {
-            "title": title,
-            "price": price,
-            "image": image,
-            "url": f"https://www.amazon.in/dp/{asin}",
-            "rating": rating,
-            "reviewCount": review_count,
-            "platform": "Amazon",
-            "priceTrend": price_trend,
-            "sentiment": sentiment,
-            "trustScore": trust,
-            "imageAuth": max(50, 82 - (index * 4)),
-            "complaints": complaints,
-            "positives": positives,
-            "sentimentBreakdown": breakdown,
-            "buyRecommendation": buy_rec,
-        }
-    except Exception as e:
-        print(f"Amazon product error for {asin}: {e}")
-        return None
-
 @app.get("/search")
 async def search(query: str = ""):
     if not query.strip():
@@ -245,11 +194,10 @@ async def search(query: str = ""):
     }
 
     flipkart_products = []
-    amazon_asins = []
     amazon_raw = []
 
     async with httpx.AsyncClient(timeout=15) as client:
-          try:
+        try:
             fk_res = await client.get(
                 "https://real-time-flipkart.p.rapidapi.com/search.php",
                 headers=headers_flipkart,
@@ -263,7 +211,7 @@ async def search(query: str = ""):
         except Exception as e:
             print(f"Flipkart error: {e}")
 
-         try:
+        try:
             amz_res = await client.get(
                 "https://amazon-online-data-api.p.rapidapi.com/search",
                 headers=headers_amazon,
@@ -281,7 +229,7 @@ async def search(query: str = ""):
     for i, p in enumerate(flipkart_products):
         title = p.get("title", p.get("name", "Unknown Product"))
         price_val = p.get("price", p.get("current_price", 0))
-          try:
+        try:
             price = f"₹{int(float(str(price_val).replace(',', ''))):,}" if price_val else "N/A"
         except:
             price = f"₹{price_val}" if price_val else "N/A"
@@ -325,13 +273,13 @@ async def search(query: str = ""):
             "buyRecommendation": buy_rec,
         })
 
-   default_amazon_reviews = ["Good product", "Decent quality", "Value for money", "Satisfactory", "Would recommend"]
+    default_amazon_reviews = ["Good product", "Decent quality", "Value for money", "Satisfactory", "Would recommend"]
     for i, p in enumerate(amazon_raw):
         title = p.get("product_title", "Unknown Product")
-        if not title or title.strip() in ["Nike", "Adidas", "Puma", ""]:
+        if not title or title.strip() in ["Nike", "Adidas", "Puma", "Jordan", ""]:
             continue
         price_usd = p.get("product_price") or p.get("product_original_price") or 0
-          try:
+        try:
             price_inr = round(float(price_usd) * 84)
             price = f"₹{price_inr:,}" if price_inr > 0 else "N/A"
         except:
