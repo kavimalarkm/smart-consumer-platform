@@ -249,7 +249,7 @@ async def search(query: str = ""):
     amazon_raw = []
 
     async with httpx.AsyncClient(timeout=15) as client:
-        try:
+          try:
             fk_res = await client.get(
                 "https://real-time-flipkart.p.rapidapi.com/search.php",
                 headers=headers_flipkart,
@@ -263,7 +263,7 @@ async def search(query: str = ""):
         except Exception as e:
             print(f"Flipkart error: {e}")
 
-       try:
+         try:
             amz_res = await client.get(
                 "https://amazon-online-data-api.p.rapidapi.com/search",
                 headers=headers_amazon,
@@ -281,7 +281,7 @@ async def search(query: str = ""):
     for i, p in enumerate(flipkart_products):
         title = p.get("title", p.get("name", "Unknown Product"))
         price_val = p.get("price", p.get("current_price", 0))
-        try:
+          try:
             price = f"₹{int(float(str(price_val).replace(',', ''))):,}" if price_val else "N/A"
         except:
             price = f"₹{price_val}" if price_val else "N/A"
@@ -331,7 +331,7 @@ async def search(query: str = ""):
         if not title or title.strip() in ["Nike", "Adidas", "Puma", ""]:
             continue
         price_usd = p.get("product_price") or p.get("product_original_price") or 0
-        try:
+          try:
             price_inr = round(float(price_usd) * 84)
             price = f"₹{price_inr:,}" if price_inr > 0 else "N/A"
         except:
