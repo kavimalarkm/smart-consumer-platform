@@ -32,7 +32,7 @@ def analyze_sentiment(reviews):
 def calculate_trust_score(review_count, rating, sentiment):
     try:
         rating = float(rating or 0)
-        review_count = int(review_count or 0)
+        review_count = int(str(review_count).replace(",", "").strip() or 0)
     except:
         rating = 0
         review_count = 0
@@ -58,7 +58,7 @@ def get_buy_recommendation(price_trend, sentiment, trust_score, rating, review_c
     wait_reasons = []
     try:
         rating = float(rating or 0)
-        review_count = int(review_count or 0)
+        review_count = int(str(review_count).replace(",", "").strip() or 0)
     except:
         rating = 0
         review_count = 0
@@ -217,7 +217,9 @@ async def search(query: str = ""):
                 params={"query": query, "page": "1", "country": "IN", "sort_by": "RELEVANCE"}
             )
             amz_data = amz_res.json()
+            print(f"Amazon raw response: {amz_data}")
             amazon_raw = amz_data.get("data", {}).get("products", [])[:5]
+            print(f"Amazon parsed products: {len(amazon_raw)}")
         except Exception as e:
             print(f"Amazon search error: {e}")
             amazon_raw = []
@@ -239,6 +241,10 @@ async def search(query: str = ""):
         else:
             rating = str(rating_data or "4.0")
             review_count = p.get("review_count", 0)
+        try:
+            review_count = int(str(review_count).replace(",", "").strip() or 0)
+        except:
+            review_count = 0
         image = p.get("image", "")
         if not image and p.get("images"):
             imgs = p.get("images")
@@ -246,7 +252,11 @@ async def search(query: str = ""):
         pid = p.get("product_id", p.get("pid", ""))
         url_link = p.get("url", f"https://www.flipkart.com/product/p/itme?pid={pid}" if pid else "")
         discount = p.get("discount_percent", p.get("discount", 0))
-        price_trend = "dropping" if discount and int(str(discount).split("%")[0].strip() or 0) > 5 else "stable"
+        try:
+            discount_val = int(str(discount).split("%")[0].strip() or 0)
+        except:
+            discount_val = 0
+        price_trend = "dropping" if discount_val > 5 else "stable"
         sentiment = analyze_sentiment(default_reviews)
         trust = calculate_trust_score(review_count, rating, sentiment)
         positives, complaints = extract_keywords(default_reviews)
@@ -274,25 +284,34 @@ async def search(query: str = ""):
 
     default_amazon_reviews = ["Good product", "Decent quality", "Value for money", "Satisfactory", "Would recommend"]
     for i, p in enumerate(amazon_raw):
-        title = p.get("product_title", "Unknown Product")
-        if not title or title.strip() in ["Nike", "Adidas", "Puma", ""]:
-            continue
-        price = p.get("product_price") or p.get("product_original_price") or "N/A"
-        if price and price != "N/A":
-            price = str(price)
+        title = p.get("product_title", "").strip()
+        if not title:
+            title = "Unknown Product"
+
+        price_raw = p.get("product_price") or p.get("product_original_price") or "N/A"
+        price = str(price_raw) if price_raw and price_raw != "N/A" else "N/A"
+
         rating = str(p.get("product_star_rating") or "4.0")
-        review_count = p.get("product_num_ratings") or 0
+
+        review_count_raw = p.get("product_num_ratings") or 0
+        try:
+            review_count = int(str(review_count_raw).replace(",", "").strip() or 0)
+        except:
+            review_count = 0
+
         image = p.get("product_photo", "")
         url_link = p.get("product_url", "")
         asin = p.get("asin", "")
         if not url_link and asin:
             url_link = f"https://www.amazon.in/dp/{asin}"
+
         sentiment = analyze_sentiment(default_amazon_reviews)
         trust = calculate_trust_score(review_count, rating, sentiment)
         positives, complaints = extract_keywords(default_amazon_reviews)
         breakdown = get_sentiment_breakdown(default_amazon_reviews)
         price_trend = "stable"
         buy_rec = get_buy_recommendation(price_trend, sentiment, trust, rating, review_count)
+
         results.append({
             "id": len(results) + 1,
             "rank": len(results) + 1,
