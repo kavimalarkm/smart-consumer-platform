@@ -49,8 +49,7 @@ def calculate_trust_score(review_count, rating, sentiment):
     else:
         review_trust = 30
     rating_trust = min(100, round((rating / 5) * 100))
-    sentiment_trust = sentiment
-    return round((review_trust * 0.5) + (rating_trust * 0.3) + (sentiment_trust * 0.2))
+    return round((review_trust * 0.5) + (rating_trust * 0.3) + (sentiment * 0.2))
 
 def get_buy_recommendation(price_trend, sentiment, trust_score, rating, review_count):
     score = 0
@@ -158,6 +157,53 @@ def extract_keywords(reviews):
     complaints = [k.capitalize() for k in neg_keywords] if neg_keywords else []
     return positives, complaints
 
+def parse_amazon_price(p):
+    """Extract best available price from Amazon product dict."""
+    for field in ["product_price", "product_original_price"]:
+        val = p.get(field)
+        if val and val not in (None, "null", ""):
+            try:
+                cleaned = str(val).replace(",", "").replace("₹", "").replace("$", "").strip()
+                num = float(cleaned)
+                # Prices in USD cents from this API can appear as small decimals like 4.29
+                # Real INR prices are typically > 100
+                if num > 100:
+                    return f"₹{int(num):,}"
+                elif num > 0:
+                    # Likely USD — convert roughly to INR (approx 83x)
+                    inr = num * 83
+                    return f"₹{int(inr):,}"
+            except:
+                continue
+    return "N/A"
+
+def parse_amazon_reviews(p):
+    """Extract review count from Amazon product dict."""
+    for field in ["product_num_ratings", "ratings_total", "review_count"]:
+        val = p.get(field)
+        if val:
+            try:
+                return int(str(val).replace(",", "").strip())
+            except:
+                continue
+    return 0
+
+async def fetch_amazon_details(client, asin, headers):
+    """Fetch full product details for an ASIN to get real price and review count."""
+    try:
+        res = await client.get(
+            "https://amazon-online-data-api.p.rapidapi.com/product-details",
+            headers=headers,
+            params={"asin": asin, "geo": "IN"},
+            timeout=10
+        )
+        data = res.json()
+        product = data.get("product", data if isinstance(data, dict) else {})
+        return product
+    except Exception as e:
+        print(f"Amazon detail fetch error for {asin}: {e}")
+        return {}
+
 @app.get("/")
 def root():
     return {"message": "Smart Consumer Intelligence API is running!"}
@@ -195,7 +241,8 @@ async def search(query: str = ""):
     flipkart_products = []
     amazon_raw = []
 
-    async with httpx.AsyncClient(timeout=15) as client:
+    async with httpx.AsyncClient(timeout=20) as client:
+        # --- Flipkart ---
         try:
             fk_res = await client.get(
                 "https://real-time-flipkart.p.rapidapi.com/search.php",
@@ -210,6 +257,7 @@ async def search(query: str = ""):
         except Exception as e:
             print(f"Flipkart error: {e}")
 
+        # --- Amazon Search ---
         try:
             amz_res = await client.get(
                 "https://amazon-online-data-api.p.rapidapi.com/search",
@@ -217,16 +265,28 @@ async def search(query: str = ""):
                 params={"query": query, "page": "1", "geo": "IN"}
             )
             amz_data = amz_res.json()
-            print(f"Amazon response success: {amz_data.get('success')}")
             amazon_raw = amz_data.get("products", [])[:5]
-            print(f"Amazon parsed products: {len(amazon_raw)}")
+            print(f"Amazon search: {len(amazon_raw)} products found")
         except Exception as e:
             print(f"Amazon search error: {e}")
             amazon_raw = []
 
-    results = []
-    default_reviews = ["Good product overall", "Decent quality", "Satisfactory experience", "Value for money", "Would recommend", "Average performance", "Not bad for the price"]
+        # --- Amazon Detail Fetch (to get real price + reviews) ---
+        amazon_details = {}
+        for p in amazon_raw:
+            asin = p.get("asin", "")
+            if asin:
+                detail = await fetch_amazon_details(client, asin, headers_amazon)
+                if detail:
+                    amazon_details[asin] = detail
 
+    results = []
+    default_reviews = [
+        "Good product overall", "Decent quality", "Satisfactory experience",
+        "Value for money", "Would recommend", "Average performance", "Not bad for the price"
+    ]
+
+    # --- Build Flipkart results ---
     for i, p in enumerate(flipkart_products):
         title = p.get("title", p.get("name", "Unknown Product"))
         price_val = p.get("price", p.get("current_price", 0))
@@ -282,38 +342,95 @@ async def search(query: str = ""):
             "buyRecommendation": buy_rec,
         })
 
-    default_amazon_reviews = ["Good product", "Decent quality", "Value for money", "Satisfactory", "Would recommend"]
+    # --- Build Amazon results ---
+    default_amazon_reviews = [
+        "Good product", "Decent quality", "Value for money", "Satisfactory", "Would recommend"
+    ]
     for i, p in enumerate(amazon_raw):
-        title = p.get("product_title", "").strip()
+        asin = p.get("asin", "")
+        detail = amazon_details.get(asin, {})
+
+        # Title — prefer detail page title
+        title = (
+            detail.get("product_title") or
+            detail.get("title") or
+            p.get("product_title") or ""
+        ).strip()
         if not title:
             title = "Unknown Product"
 
-        # Use original price first, fall back to product_price
-        price_raw = p.get("product_original_price") or p.get("product_price") or "N/A"
+        # Price — prefer detail page, then search result
+        price = "N/A"
+        for src in [detail, p]:
+            for field in ["product_price", "product_original_price", "price"]:
+                val = src.get(field)
+                if val and str(val).strip() not in ("", "null", "None", "N/A"):
+                    try:
+                        cleaned = str(val).replace(",", "").replace("₹", "").replace("$", "").strip()
+                        num = float(cleaned)
+                        if num > 100:
+                            price = f"₹{int(num):,}"
+                        elif num > 0:
+                            price = f"₹{int(num * 83):,}"
+                        break
+                    except:
+                        continue
+            if price != "N/A":
+                break
+
+        # Rating
+        rating_raw = (
+            detail.get("product_star_rating") or
+            detail.get("stars") or
+            p.get("product_star_rating") or
+            "4.0"
+        )
         try:
-            price_num = float(str(price_raw).replace(",", "").strip())
-            price = f"₹{int(price_num):,}"
+            rating = str(round(float(str(rating_raw).split(" ")[0]), 1))
         except:
-            price = str(price_raw) if price_raw and price_raw != "N/A" else "N/A"
+            rating = "4.0"
 
-        rating = str(p.get("product_star_rating") or "4.0")
+        # Review count
+        review_count = 0
+        for src in [detail, p]:
+            for field in ["product_num_ratings", "ratings_total", "num_reviews", "review_count"]:
+                val = src.get(field)
+                if val:
+                    try:
+                        review_count = int(str(val).replace(",", "").strip())
+                        break
+                    except:
+                        continue
+            if review_count > 0:
+                break
 
-        review_count_raw = p.get("product_num_ratings") or 0
-        try:
-            review_count = int(str(review_count_raw).replace(",", "").strip() or 0)
-        except:
-            review_count = 0
+        # Real reviews for sentiment
+        real_reviews = []
+        for src in [detail, p]:
+            reviews_raw = src.get("reviews", src.get("top_reviews", []))
+            if isinstance(reviews_raw, list):
+                for r in reviews_raw:
+                    if isinstance(r, dict):
+                        text = r.get("review_comment", r.get("body", r.get("text", "")))
+                        if text:
+                            real_reviews.append(text)
+                    elif isinstance(r, str) and r:
+                        real_reviews.append(r)
+        reviews_to_use = real_reviews if real_reviews else default_amazon_reviews
 
-        image = p.get("product_photo", "")
+        image = (
+            detail.get("product_photo") or
+            detail.get("main_image") or
+            p.get("product_photo") or ""
+        )
         url_link = p.get("product_url", "")
-        asin = p.get("asin", "")
         if not url_link and asin:
             url_link = f"https://www.amazon.in/dp/{asin}"
 
-        sentiment = analyze_sentiment(default_amazon_reviews)
+        sentiment = analyze_sentiment(reviews_to_use)
         trust = calculate_trust_score(review_count, rating, sentiment)
-        positives, complaints = extract_keywords(default_amazon_reviews)
-        breakdown = get_sentiment_breakdown(default_amazon_reviews)
+        positives, complaints = extract_keywords(reviews_to_use)
+        breakdown = get_sentiment_breakdown(reviews_to_use)
         price_trend = "stable"
         buy_rec = get_buy_recommendation(price_trend, sentiment, trust, rating, review_count)
 
