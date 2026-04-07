@@ -49,16 +49,6 @@ const FEATURES = [
   },
 ];
 
-const TECH_STACK = [
-  { name: "Next.js", desc: "Frontend framework", icon: "⚡" },
-  { name: "FastAPI", desc: "Python backend", icon: "🐍" },
-  { name: "TextBlob", desc: "NLP & sentiment", icon: "🧠" },
-  { name: "Supabase", desc: "Auth & database", icon: "🗄️" },
-  { name: "RapidAPI", desc: "Product data", icon: "🔌" },
-  { name: "Vercel", desc: "Frontend hosting", icon: "▲" },
-  { name: "Render", desc: "Backend hosting", icon: "🚀" },
-  { name: "httpx", desc: "Async HTTP client", icon: "🌐" },
-];
 
 const HOW_IT_WORKS = [
   { num: "1", icon: "🔍", title: "Search", desc: "Enter any product name — we fetch real listings from Amazon and Flipkart instantly." },
@@ -231,20 +221,6 @@ export default function About() {
                   )}
                 </div>
               )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Tech Stack */}
-      <div className="about-tech">
-        <h2 className="about-section-title">Tech Stack</h2>
-        <div className="tech-grid">
-          {TECH_STACK.map((t) => (
-            <div key={t.name} className="tech-card">
-              <div style={{ fontSize: "24px", marginBottom: "8px" }}>{t.icon}</div>
-              <div className="tech-name">{t.name}</div>
-              <div className="tech-desc">{t.desc}</div>
             </div>
           ))}
         </div>
